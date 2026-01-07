@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"cliprouter/internal/config"
+	"github.com/clobrano/cliprouter/internal/config"
 )
 
 func TestSubstituteClipboard(t *testing.T) {

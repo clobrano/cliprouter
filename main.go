@@ -8,11 +8,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"cliprouter/internal/clipboard"
-	"cliprouter/internal/config"
-	"cliprouter/internal/executor"
-	"cliprouter/internal/logger"
-	"cliprouter/internal/ui"
+	"github.com/clobrano/cliprouter/internal/clipboard"
+	"github.com/clobrano/cliprouter/internal/config"
+	"github.com/clobrano/cliprouter/internal/executor"
+	"github.com/clobrano/cliprouter/internal/logger"
+	"github.com/clobrano/cliprouter/internal/ui"
 )
 
 var (

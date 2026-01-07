@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"cliprouter/internal/config"
-	"cliprouter/internal/logger"
+	"github.com/clobrano/cliprouter/internal/config"
+	"github.com/clobrano/cliprouter/internal/logger"
 )
 
 // Execute runs a script with the clipboard content

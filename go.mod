@@ -1,4 +1,4 @@
-module cliprouter
+module github.com/clobrano/cliprouter
 
 go 1.24.0
 

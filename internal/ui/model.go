@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"cliprouter/internal/config"
+	"github.com/clobrano/cliprouter/internal/config"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
