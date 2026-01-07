@@ -22,6 +22,15 @@ func TestValidateConfig(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "valid config with timeout",
+			config: &Config{
+				Scripts: []Script{
+					{Name: "Test", Command: "echo test", Timeout: 60},
+				},
+			},
+			expectErr: false,
+		},
+		{
 			name: "empty scripts",
 			config: &Config{
 				Scripts: []Script{},
@@ -29,11 +38,11 @@ func TestValidateConfig(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "too many scripts",
+			name: "many scripts allowed",
 			config: &Config{
-				Scripts: make([]Script, 11),
+				Scripts: make([]Script, 50),
 			},
-			expectErr: true,
+			expectErr: true, // Will fail because scripts don't have names/commands
 		},
 		{
 			name: "missing name",
@@ -53,20 +62,13 @@ func TestValidateConfig(t *testing.T) {
 			},
 			expectErr: true,
 		},
-		{
-			name: "max scripts allowed",
-			config: &Config{
-				Scripts: make([]Script, 10),
-			},
-			expectErr: true, // Will fail because scripts don't have names/commands
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// For the "max scripts allowed" test, populate with valid data
-			if tt.name == "max scripts allowed" {
-				for i := 0; i < 10; i++ {
+			// For the "many scripts allowed" test, populate with valid data
+			if tt.name == "many scripts allowed" {
+				for i := 0; i < 50; i++ {
 					tt.config.Scripts[i] = Script{Name: "Test", Command: "echo test"}
 				}
 				tt.expectErr = false

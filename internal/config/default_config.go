@@ -3,7 +3,6 @@ package config
 // DefaultConfigContent returns the default YAML configuration content
 func DefaultConfigContent() string {
 	return `# Clipboard Router Configuration
-# Maximum 10 scripts allowed
 
 scripts:
   # Example 1: Simple command with clipboard placeholder
@@ -19,8 +18,9 @@ scripts:
 #   ${CLIP} - Will be replaced with the clipboard content
 #
 # Configuration:
-#   - name: Display name shown in the TUI
-#   - command: Command to execute (can be multiline for scripts)
+#   - name: Display name shown in the TUI (required)
+#   - command: Command to execute (required, can be multiline for scripts)
+#   - timeout: Timeout in seconds (optional, defaults to --timeout flag or 3s)
 #
 # Examples:
 #
@@ -30,7 +30,8 @@ scripts:
 # - name: Bookmark URL
 #   command: bookmark --url ${CLIP}
 #
-# - name: Process with Script
+# - name: Long Running Process
+#   timeout: 300  # 5 minutes
 #   command: |
 #     #!/bin/bash
 #     echo "Processing: ${CLIP}"

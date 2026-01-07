@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	MaxScripts     = 10
 	ConfigFileName = "cliprouter/config.yaml"
 )
 
@@ -19,6 +18,7 @@ const (
 type Script struct {
 	Name    string `yaml:"name"`
 	Command string `yaml:"command"`
+	Timeout int    `yaml:"timeout,omitempty"` // Timeout in seconds (optional, 0 means use default)
 }
 
 // Config represents the application configuration
@@ -50,10 +50,6 @@ func LoadConfig(path string) (*Config, error) {
 func validateConfig(config *Config) error {
 	if len(config.Scripts) == 0 {
 		return fmt.Errorf("configuration must contain at least one script")
-	}
-
-	if len(config.Scripts) > MaxScripts {
-		return fmt.Errorf("configuration contains %d scripts, but maximum allowed is %d", len(config.Scripts), MaxScripts)
 	}
 
 	for i, script := range config.Scripts {

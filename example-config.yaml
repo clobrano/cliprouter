@@ -27,15 +27,22 @@ scripts:
   #   command: |
   #     echo "- [ ] ${CLIP}" >> ~/todo.md
 
-  # Example 6: Send to API
+  # Example 6: Send to API with custom timeout
   # - name: Post to Webhook
+  #   timeout: 60  # Custom timeout in seconds (optional)
   #   command: |
   #     curl -X POST https://example.com/webhook \
   #       -H "Content-Type: application/json" \
   #       -d "{\"text\": ${CLIP}}"
 
+  # Example 7: Long-running process with extended timeout
+  # - name: Process Video
+  #   timeout: 300  # 5 minutes timeout
+  #   command: ffmpeg -i ${CLIP} -c:v libx264 output.mp4
+
 # Notes:
-# - Maximum 10 scripts allowed
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
 # - Both 'name' and 'command' fields are required
+# - 'timeout' is optional (in seconds). If not specified, uses the global
+#   --timeout flag (default: 3 seconds)
