@@ -1,0 +1,41 @@
+# Example Clipboard Router Configuration
+# Copy this file to your config directory and customize it
+#
+# Linux: ~/.config/cliprouter/config.yaml
+# macOS: ~/Library/Application Support/cliprouter/config.yaml
+
+scripts:
+  # Example 1: Simple echo command
+  - name: Echo Clipboard
+    command: echo ${CLIP}
+
+  # Example 2: Save to daily notes with timestamp
+  - name: Save to Notes
+    command: |
+      echo "$(date): ${CLIP}" >> ~/cliprouter-notes.txt
+
+  # Example 3: Open URL in browser
+  - name: Open in Browser
+    command: xdg-open ${CLIP}
+
+  # Example 4: Search Google (macOS example)
+  # - name: Search Google
+  #   command: open "https://www.google.com/search?q=${CLIP}"
+
+  # Example 5: Copy to another file
+  # - name: Append to TODO
+  #   command: |
+  #     echo "- [ ] ${CLIP}" >> ~/todo.md
+
+  # Example 6: Send to API
+  # - name: Post to Webhook
+  #   command: |
+  #     curl -X POST https://example.com/webhook \
+  #       -H "Content-Type: application/json" \
+  #       -d "{\"text\": ${CLIP}}"
+
+# Notes:
+# - Maximum 10 scripts allowed
+# - ${CLIP} is replaced with clipboard content (properly escaped)
+# - Commands can be multiline (use | for multiline YAML)
+# - Both 'name' and 'command' fields are required
