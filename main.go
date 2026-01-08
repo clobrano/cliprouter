@@ -19,7 +19,7 @@ var (
 	configPath = flag.String("config", "", "Path to configuration file")
 	verbose    = flag.Bool("v", false, "Enable verbose logging")
 	dryRun     = flag.Bool("dry-run", false, "Show command without executing")
-	timeoutSec = flag.Int("timeout", 3, "Script execution timeout in seconds")
+	timeoutSec = flag.Int("timeout", 0, "Script execution timeout in seconds (0 = no timeout)")
 )
 
 func main() {
@@ -123,12 +123,16 @@ func main() {
 	}
 
 	// Execute the selected script and wait for it to complete
-	// The executor will block until the process exits or times out
-	// Use script-specific timeout if set, otherwise use global timeout
+	// The executor will block until the process exits (or times out if timeout is configured)
+	// Determine timeout: script-specific timeout > global timeout > no timeout (0)
 	timeout := time.Duration(*timeoutSec) * time.Second
 	if selectedScript.Timeout > 0 {
 		timeout = time.Duration(selectedScript.Timeout) * time.Second
 		logger.LogInfo("Using script-specific timeout: %d seconds", selectedScript.Timeout)
+	} else if timeout > 0 {
+		logger.LogInfo("Using global timeout: %d seconds", *timeoutSec)
+	} else {
+		logger.LogInfo("Running without timeout - will wait indefinitely for process to complete")
 	}
 	stdout, stderr, err := executor.Execute(*selectedScript, singleLineContent, timeout)
 

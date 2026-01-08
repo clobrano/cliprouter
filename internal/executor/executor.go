@@ -13,14 +13,24 @@ import (
 )
 
 // Execute runs a script with the clipboard content
+// If timeout is 0, the script will run without a timeout
 func Execute(script config.Script, clipboardContent string, timeout time.Duration) (string, string, error) {
 	logger.LogInfo("Executing script: %s", script.Name)
 
 	// Substitute ${CLIP} placeholder
 	command := substituteClipboard(script.Command, clipboardContent)
 
-	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// Create context with or without timeout
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	if timeout > 0 {
+		logger.LogDebug("Using timeout: %v", timeout)
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	} else {
+		logger.LogDebug("Running without timeout - will wait indefinitely")
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	defer cancel()
 
 	// Detect if multiline (shell script) or simple command
@@ -63,8 +73,8 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		logger.LogDebug("stderr: %s", stderrStr)
 	}
 
-	// Check for timeout
-	if ctx.Err() == context.DeadlineExceeded {
+	// Check for timeout (only relevant if timeout was set)
+	if timeout > 0 && ctx.Err() == context.DeadlineExceeded {
 		logger.LogError("Script '%s' timed out after %v", script.Name, timeout)
 		return stdoutStr, stderrStr, fmt.Errorf("script execution timed out after %v", timeout)
 	}
