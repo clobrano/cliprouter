@@ -149,3 +149,64 @@ func TestExecuteTimeout(t *testing.T) {
 		t.Errorf("Expected timeout error, got: %v", err)
 	}
 }
+
+// TestExecuteWaitsForCompletion verifies that Execute waits for the process to complete
+func TestExecuteWaitsForCompletion(t *testing.T) {
+	// Use multiline to ensure it's executed as a shell script
+	script := config.Script{
+		Name: "Wait Test",
+		Command: `sleep 1
+echo 'completed'`,
+	}
+
+	timeout := 5 * time.Second
+	start := time.Now()
+	stdout, _, err := Execute(script, "test", timeout)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Errorf("Execute() should not have failed: %v", err)
+	}
+
+	// Verify that at least 1 second elapsed (process was waited for)
+	if elapsed < 1*time.Second {
+		t.Errorf("Execute() returned too quickly (%v), should have waited for process", elapsed)
+	}
+
+	// Verify that the output contains "completed", indicating process finished
+	if !strings.Contains(stdout, "completed") {
+		t.Errorf("Execute() stdout = %q, should contain 'completed'", stdout)
+	}
+}
+
+// TestExecuteWaitsForShellScript verifies waiting for multi-line shell scripts
+func TestExecuteWaitsForShellScript(t *testing.T) {
+	script := config.Script{
+		Name: "Multi-line Wait Test",
+		Command: `
+sleep 1
+echo 'step1'
+sleep 1
+echo 'step2'
+`,
+	}
+
+	timeout := 10 * time.Second
+	start := time.Now()
+	stdout, _, err := Execute(script, "test", timeout)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		t.Errorf("Execute() should not have failed: %v", err)
+	}
+
+	// Verify that at least 2 seconds elapsed (process was waited for)
+	if elapsed < 2*time.Second {
+		t.Errorf("Execute() returned too quickly (%v), should have waited at least 2 seconds", elapsed)
+	}
+
+	// Verify both steps completed
+	if !strings.Contains(stdout, "step1") || !strings.Contains(stdout, "step2") {
+		t.Errorf("Execute() stdout = %q, should contain both 'step1' and 'step2'", stdout)
+	}
+}

@@ -122,7 +122,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Execute the selected script
+	// Execute the selected script and wait for it to complete
+	// The executor will block until the process exits or times out
 	// Use script-specific timeout if set, otherwise use global timeout
 	timeout := time.Duration(*timeoutSec) * time.Second
 	if selectedScript.Timeout > 0 {

@@ -40,8 +40,17 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	// Execute command
-	err := cmd.Run()
+	// Start the command
+	logger.LogDebug("Starting process for script: %s", script.Name)
+	err := cmd.Start()
+	if err != nil {
+		logger.LogError("Failed to start script '%s': %v", script.Name, err)
+		return "", "", fmt.Errorf("failed to start script: %w", err)
+	}
+
+	// Wait for the process to complete
+	logger.LogDebug("Waiting for process to complete: %s", script.Name)
+	err = cmd.Wait()
 
 	stdoutStr := stdout.String()
 	stderrStr := stderr.String()
@@ -65,7 +74,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		return stdoutStr, stderrStr, fmt.Errorf("script execution failed: %w", err)
 	}
 
-	logger.LogInfo("Script '%s' completed successfully", script.Name)
+	logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
 	return stdoutStr, stderrStr, nil
 }
 
