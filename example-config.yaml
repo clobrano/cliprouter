@@ -133,6 +133,44 @@ scripts:
   #     echo "PROJECT_DIR=$PROJECT_DIR" >> "$CLIPROUTER_ENV_FILE"
   #     cd "$PROJECT_DIR" && npm run build
 
+  # Example 17: Interactive notification - Using CLIPROUTER_ENV_FILE in both prompt and action
+  # - name: Generate Report
+  #   notify_after: "Report generation completed"
+  #   notify_action:
+  #     prompt: "Report saved to ${REPORT_FILE}. Open it now?"
+  #     on_confirm:
+  #       open_file: "${REPORT_FILE}"
+  #   command: |
+  #     # Generate report with dynamic filename
+  #     REPORT_FILE="/tmp/report-$(date +%Y%m%d-%H%M%S).pdf"
+  #     REPORT_DIR="$(dirname $REPORT_FILE)"
+  #
+  #     # Make variables available to notification
+  #     echo "REPORT_FILE=$REPORT_FILE" >> "$CLIPROUTER_ENV_FILE"
+  #     echo "REPORT_DIR=$REPORT_DIR" >> "$CLIPROUTER_ENV_FILE"
+  #
+  #     # Generate the actual report
+  #     echo "Report content: ${CLIP}" | pandoc -o "$REPORT_FILE"
+
+  # Example 18: Interactive notification - Multiple CLIPROUTER_ENV_FILE vars in action
+  # - name: Process Data
+  #   notify_after: "Processing completed: ${RECORDS_PROCESSED} records processed"
+  #   notify_action:
+  #     prompt: "View results in ${OUTPUT_DIR}?"
+  #     on_confirm:
+  #       execute: "ls -lah ${OUTPUT_DIR} && cat ${OUTPUT_DIR}/summary.txt"
+  #   command: |
+  #     OUTPUT_DIR="/tmp/data-output-$(date +%s)"
+  #     mkdir -p "$OUTPUT_DIR"
+  #
+  #     # Process data
+  #     RECORDS_PROCESSED=42
+  #     echo "Processing ${CLIP}" > "$OUTPUT_DIR/summary.txt"
+  #
+  #     # Export variables for notifications
+  #     echo "OUTPUT_DIR=$OUTPUT_DIR" >> "$CLIPROUTER_ENV_FILE"
+  #     echo "RECORDS_PROCESSED=$RECORDS_PROCESSED" >> "$CLIPROUTER_ENV_FILE"
+
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
@@ -166,6 +204,10 @@ scripts:
 # - Format: One variable per line, e.g., "REPORT_FILE=/path/to/file"
 # - Useful when values are computed during execution
 # - Example: echo "MYVAR=$computed_value" >> "$CLIPROUTER_ENV_FILE"
+# - These variables work in ALL notification fields:
+#   * notify_before, notify_after, notify_on_error messages
+#   * notify_action prompt text
+#   * notify_action on_confirm actions (both open_file and execute)
 #
 # IMPORTANT: Variables exported INSIDE the command (e.g., 'export MYVAR=value')
 # are NOT accessible in notifications due to process isolation.
@@ -182,7 +224,10 @@ scripts:
 #       execute: "command"    # Executes a command in the background
 #
 # - Only one action can be specified (either open_file OR execute, not both)
-# - Both prompt and action support full variable substitution
+# - Both prompt and action support FULL variable substitution including:
+#   * All standard variables: ${SCRIPT_NAME}, ${COMMAND}, ${EXIT_CODE}, ${STDOUT}, ${STDERR}, ${ERROR}
+#   * Environment variables: ${USER}, ${HOME}, etc.
+#   * CLIPROUTER_ENV_FILE variables: Any variable written to $CLIPROUTER_ENV_FILE by the command
 # - Interactive notifications only show on successful command execution (exit code 0)
 # - Available on all platforms:
 #   - Linux: Uses zenity or kdialog for dialogs, xdg-open for files
