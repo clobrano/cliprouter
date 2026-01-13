@@ -38,16 +38,20 @@ scripts:
 #   timeout: 300  # 5 minutes
 #   env:
 #     TASK_NAME: "data-processing"
+#     OUTPUT_FILE: "/tmp/default.txt"
 #   notify_before:
 #     message: "Starting ${TASK_NAME}..."
 #   notify_after:
-#     message: "${TASK_NAME} completed successfully"
+#     message: "${TASK_NAME} completed. Output: ${OUTPUT_FILE}"
 #   notify_on_error:
 #     message: "${TASK_NAME} failed: ${ERROR}"
 #   command: |
 #     #!/bin/bash
-#     echo "Processing $TASK_NAME: ${CLIP}"
-#     # Your script here
+#     # Compute dynamic output file
+#     OUTPUT_FILE="/tmp/output-$(date +%s).txt"
+#     echo "Processing $TASK_NAME: ${CLIP}" > "$OUTPUT_FILE"
+#     # Update env var for notification
+#     echo "OUTPUT_FILE=$OUTPUT_FILE" >> "$CLIPROUTER_ENV_FILE"
 #
 # Notifications:
 #   - Notification title is always the script name
@@ -66,6 +70,8 @@ scripts:
 #     ${ANY_ENV_VAR} - script-specific env vars (from 'env' field) or parent process
 #   - Script-specific env vars (defined in 'env' field) are accessible in notifications
 #   - Parent process environment variables are also accessible
-#   - NOTE: Env vars exported INSIDE commands are not accessible (use ${STDOUT})
+#   - Dynamic env vars: Write to $CLIPROUTER_ENV_FILE in your command:
+#     echo "VAR_NAME=value" >> "$CLIPROUTER_ENV_FILE"
+#   - NOTE: Env vars exported INSIDE commands are not accessible (use CLIPROUTER_ENV_FILE)
 `
 }

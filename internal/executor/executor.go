@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -21,6 +22,18 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 
 	// Substitute ${CLIP} placeholder
 	command := substituteClipboard(script.Command, clipboardContent)
+
+	// Create a temporary file for dynamic environment variables
+	envFile, err := ioutil.TempFile("", "cliprouter-env-*.txt")
+	if err != nil {
+		logger.LogError("Failed to create env file: %v", err)
+		return "", "", fmt.Errorf("failed to create env file: %w", err)
+	}
+	envFilePath := envFile.Name()
+	envFile.Close()
+	defer os.Remove(envFilePath) // Clean up after execution
+
+	logger.LogDebug("Created env file: %s", envFilePath)
 
 	// Send pre-execution notification if configured
 	if script.NotifyBefore != nil {
@@ -61,10 +74,15 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	}
 
 	// Set environment variables for the command
+	// Always start with parent process environment
+	cmd.Env = os.Environ()
+
+	// Add the CLIPROUTER_ENV_FILE variable
+	cmd.Env = append(cmd.Env, fmt.Sprintf("CLIPROUTER_ENV_FILE=%s", envFilePath))
+	logger.LogDebug("Setting env var: CLIPROUTER_ENV_FILE=%s", envFilePath)
+
+	// Add script-specific environment variables
 	if len(script.Env) > 0 {
-		// Start with the parent process environment
-		cmd.Env = os.Environ()
-		// Add script-specific environment variables
 		for key, value := range script.Env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 			logger.LogDebug("Setting env var: %s=%s", key, value)
@@ -78,7 +96,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 
 	// Start the command
 	logger.LogDebug("Starting process for script: %s", script.Name)
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		logger.LogError("Failed to start script '%s': %v", script.Name, err)
 		return "", "", fmt.Errorf("failed to start script: %w", err)
@@ -118,6 +136,22 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
 	}
 
+	// Read dynamic environment variables from the env file
+	finalEnv := make(map[string]string)
+	// Start with config env vars
+	for k, v := range script.Env {
+		finalEnv[k] = v
+	}
+	// Read and merge variables from the env file (these override config vars)
+	if envVars, err := readEnvFile(envFilePath); err == nil {
+		for k, v := range envVars {
+			finalEnv[k] = v
+			logger.LogDebug("Dynamic env var from script: %s=%s", k, v)
+		}
+	} else {
+		logger.LogDebug("No dynamic env vars or error reading env file: %v", err)
+	}
+
 	// Send post-execution notification based on success or failure
 	notifCtx := notification.NotificationContext{
 		ScriptName: script.Name,
@@ -126,7 +160,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		Stdout:     stdoutStr,
 		Stderr:     stderrStr,
 		Error:      errorMsg,
-		ScriptEnv:  script.Env,
+		ScriptEnv:  finalEnv,
 	}
 
 	if hasError && script.NotifyOnError != nil {
@@ -202,4 +236,38 @@ func sendNotification(notif *config.Notification, ctx notification.NotificationC
 		// Log the error but don't fail the execution
 		logger.LogError("Failed to send notification: %v", err)
 	}
+}
+
+// readEnvFile reads environment variables from a file
+// Expected format: VAR_NAME=value (one per line)
+// Lines starting with # are ignored as comments
+// Empty lines are ignored
+func readEnvFile(path string) (map[string]string, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	envVars := make(map[string]string)
+	lines := strings.Split(string(content), "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		// Skip empty lines and comments
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Parse VAR_NAME=value
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if key != "" {
+				envVars[key] = value
+			}
+		}
+	}
+
+	return envVars, nil
 }

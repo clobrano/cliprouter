@@ -82,15 +82,23 @@ scripts:
   #     message: "Task completed successfully"
   #   command: echo "Task done"
 
-  # Example 12: Using command output in notifications
-  # NOTE: Env vars exported INSIDE the command are NOT accessible in notifications
-  # Workaround: Echo the value and use ${STDOUT}
-  # - name: Process with Output
+  # Example 12: Dynamic environment variables using CLIPROUTER_ENV_FILE
+  # Commands can write to $CLIPROUTER_ENV_FILE to update env vars for notifications
+  # - name: Generate Report
+  #   env:
+  #     REPORT_FILE: "/tmp/default-report.txt"  # Default value
   #   notify_after:
-  #     message: "Result: ${STDOUT}"
+  #     message: "Report generated at ${REPORT_FILE}"
   #   command: |
-  #     export RESULT="processed data"
-  #     echo "$RESULT"
+  #     # Compute dynamic value
+  #     REPORT_FILE="/tmp/report-$(date +%s).txt"
+  #     echo "Generating report: $REPORT_FILE"
+  #
+  #     # Write to CLIPROUTER_ENV_FILE to update the variable for notifications
+  #     echo "REPORT_FILE=$REPORT_FILE" >> "$CLIPROUTER_ENV_FILE"
+  #
+  #     # Generate report
+  #     echo "Report content" > "$REPORT_FILE"
 
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
@@ -121,6 +129,15 @@ scripts:
 #   - The command execution environment
 #   - Notification messages (via ${VAR_NAME})
 # - Parent process environment variables are also accessible
-# - Variables exported INSIDE the command (e.g., 'export MYVAR=value') are NOT accessible in notifications
-# - This is due to process isolation - child process env vars don't propagate to parent
-# - Alternative workaround: Use ${STDOUT} to capture command output
+#
+# Dynamic Environment Variables (CLIPROUTER_ENV_FILE):
+# - Commands receive a $CLIPROUTER_ENV_FILE variable pointing to a temp file
+# - Write "VAR_NAME=value" lines to this file to update env vars for notifications
+# - Format: One variable per line, e.g., "REPORT_FILE=/path/to/file"
+# - These override config 'env' values for notifications
+# - Useful when values are computed during execution
+# - Example: echo "MYVAR=$computed_value" >> "$CLIPROUTER_ENV_FILE"
+#
+# Note: Variables exported INSIDE the command (e.g., 'export MYVAR=value')
+# are NOT accessible in notifications due to process isolation.
+# Use CLIPROUTER_ENV_FILE or ${STDOUT} instead.
