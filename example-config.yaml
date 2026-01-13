@@ -43,21 +43,16 @@ scripts:
   # Example 8: Long-running task with notifications
   # - name: Backup Files
   #   timeout: 0  # No timeout
-  #   notify_before:
-  #     message: "Starting backup..."
-  #   notify_after:
-  #     message: "Backup finished with exit code ${EXIT_CODE}"
+  #   notify_before: "Starting backup..."
+  #   notify_after: "Backup finished with exit code ${EXIT_CODE}"
   #   command: |
   #     tar -czf backup-$(date +%Y%m%d).tar.gz ~/Documents
 
   # Example 9: Notification with dynamic environment variables
   # - name: Deploy Application
-  #   notify_before:
-  #     message: "Deploying application"
-  #   notify_after:
-  #     message: "Deployment to ${DEPLOY_ENV} completed successfully"
-  #   notify_on_error:
-  #     message: "Deployment to ${DEPLOY_ENV} failed: ${ERROR}"
+  #   notify_before: "Deploying application"
+  #   notify_after: "Deployment to ${DEPLOY_ENV} completed successfully"
+  #   notify_on_error: "Deployment to ${DEPLOY_ENV} failed: ${ERROR}"
   #   command: |
   #     DEPLOY_ENV="production"
   #     echo "DEPLOY_ENV=$DEPLOY_ENV" >> "$CLIPROUTER_ENV_FILE"
@@ -65,26 +60,21 @@ scripts:
 
   # Example 10: Separate notifications for success and error
   # - name: Backup Files
-  #   notify_before:
-  #     message: "Starting backup..."
-  #   notify_after:
-  #     message: "Backup completed successfully"
-  #   notify_on_error:
-  #     message: "Backup failed: ${ERROR}"
+  #   notify_before: "Starting backup..."
+  #   notify_after: "Backup completed successfully"
+  #   notify_on_error: "Backup failed: ${ERROR}"
   #   command: |
   #     rsync -av ${CLIP} /backup/
 
   # Example 11: Simple notification (message only)
   # - name: Quick Task
-  #   notify_after:
-  #     message: "Task completed successfully"
+  #   notify_after: "Task completed successfully"
   #   command: echo "Task done"
 
   # Example 12: Dynamic environment variables using CLIPROUTER_ENV_FILE
   # Commands can write to $CLIPROUTER_ENV_FILE to expose vars to notifications
   # - name: Generate Report
-  #   notify_after:
-  #     message: "Report generated at ${REPORT_FILE}"
+  #   notify_after: "Report generated at ${REPORT_FILE}"
   #   command: |
   #     # Compute dynamic value
   #     REPORT_FILE="/tmp/report-$(date +%s).txt"
@@ -105,11 +95,11 @@ scripts:
 #
 # Notifications:
 # - Notification title is always the script name
-# - Only the message field supports variable substitution
+# - Message supports variable substitution
 # - Three notification types available:
-#   - notify_before: Sent before command execution starts
-#   - notify_after: Sent when command completes successfully (exit code 0)
-#   - notify_on_error: Sent when command fails (exit code != 0)
+#   - notify_before: "message" - Sent before command execution starts
+#   - notify_after: "message" - Sent when command completes successfully (exit code 0)
+#   - notify_on_error: "message" - Sent when command fails (exit code != 0)
 # - Available variables in notification messages:
 #   - ${SCRIPT_NAME} - name of the script being executed
 #   - ${COMMAND} - the command being executed

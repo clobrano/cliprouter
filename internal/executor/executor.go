@@ -36,8 +36,8 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	logger.LogDebug("Created env file: %s", envFilePath)
 
 	// Send pre-execution notification if configured
-	if script.NotifyBefore != nil {
-		sendNotification(script.NotifyBefore, notification.NotificationContext{
+	if script.NotifyBefore != "" {
+		sendNotification(script.Name, script.NotifyBefore, notification.NotificationContext{
 			ScriptName: script.Name,
 			Command:    command,
 			ExitCode:   0,
@@ -151,12 +151,12 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		ScriptEnv:  finalEnv,
 	}
 
-	if hasError && script.NotifyOnError != nil {
+	if hasError && script.NotifyOnError != "" {
 		// Send error notification if command failed
-		sendNotification(script.NotifyOnError, notifCtx)
-	} else if !hasError && script.NotifyAfter != nil {
+		sendNotification(script.Name, script.NotifyOnError, notifCtx)
+	} else if !hasError && script.NotifyAfter != "" {
 		// Send success notification if command succeeded
-		sendNotification(script.NotifyAfter, notifCtx)
+		sendNotification(script.Name, script.NotifyAfter, notifCtx)
 	}
 
 	if err != nil {
@@ -208,16 +208,13 @@ func SubstituteClipboard(command, clipboardContent string) string {
 
 // sendNotification sends a notification with variable substitution
 // The title is always the script name, only the message supports variable substitution
-func sendNotification(notif *config.Notification, ctx notification.NotificationContext) {
-	if notif == nil {
+func sendNotification(title, message string, ctx notification.NotificationContext) {
+	if message == "" {
 		return
 	}
 
-	// Use script name as title
-	title := ctx.ScriptName
-
 	// Substitute variables in message
-	message := notification.SubstituteVariables(notif.Message, ctx)
+	message = notification.SubstituteVariables(message, ctx)
 
 	// Send the notification
 	if err := notification.Send(title, message); err != nil {
