@@ -40,9 +40,86 @@ scripts:
   #   timeout: 300  # 5 minutes timeout
   #   command: ffmpeg -i ${CLIP} -c:v libx264 output.mp4
 
+  # Example 8: Long-running task with notifications
+  # - name: Backup Files
+  #   timeout: 0  # No timeout
+  #   notify_before: "Starting backup..."
+  #   notify_after: "Backup finished with exit code ${EXIT_CODE}"
+  #   command: |
+  #     tar -czf backup-$(date +%Y%m%d).tar.gz ~/Documents
+
+  # Example 9: Notification with dynamic environment variables
+  # - name: Deploy Application
+  #   notify_before: "Deploying application"
+  #   notify_after: "Deployment to ${DEPLOY_ENV} completed successfully"
+  #   notify_on_error: "Deployment to ${DEPLOY_ENV} failed: ${ERROR}"
+  #   command: |
+  #     DEPLOY_ENV="production"
+  #     echo "DEPLOY_ENV=$DEPLOY_ENV" >> "$CLIPROUTER_ENV_FILE"
+  #     ./deploy.sh ${CLIP}
+
+  # Example 10: Separate notifications for success and error
+  # - name: Backup Files
+  #   notify_before: "Starting backup..."
+  #   notify_after: "Backup completed successfully"
+  #   notify_on_error: "Backup failed: ${ERROR}"
+  #   command: |
+  #     rsync -av ${CLIP} /backup/
+
+  # Example 11: Simple notification (message only)
+  # - name: Quick Task
+  #   notify_after: "Task completed successfully"
+  #   command: echo "Task done"
+
+  # Example 12: Dynamic environment variables using CLIPROUTER_ENV_FILE
+  # Commands can write to $CLIPROUTER_ENV_FILE to expose vars to notifications
+  # - name: Generate Report
+  #   notify_after: "Report generated at ${REPORT_FILE}"
+  #   command: |
+  #     # Compute dynamic value
+  #     REPORT_FILE="/tmp/report-$(date +%s).txt"
+  #     echo "Generating report: $REPORT_FILE"
+  #
+  #     # Write to CLIPROUTER_ENV_FILE to make variable available in notifications
+  #     echo "REPORT_FILE=$REPORT_FILE" >> "$CLIPROUTER_ENV_FILE"
+  #
+  #     # Generate report
+  #     echo "Report content" > "$REPORT_FILE"
+
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
+#
+# Notifications:
+# - Notification title is always the script name
+# - Message supports variable substitution
+# - Three notification types available:
+#   - notify_before: "message" - Sent before command execution starts
+#   - notify_after: "message" - Sent when command completes successfully (exit code 0)
+#   - notify_on_error: "message" - Sent when command fails (exit code != 0)
+# - Available variables in notification messages:
+#   - ${SCRIPT_NAME} - name of the script being executed
+#   - ${COMMAND} - the command being executed
+#   - ${EXIT_CODE} - exit code of the command (available in notify_after/notify_on_error)
+#   - ${STDOUT} - standard output from the command (available in notify_after/notify_on_error)
+#   - ${STDERR} - standard error from the command (available in notify_after/notify_on_error)
+#   - ${ERROR} - error message if any (available in notify_after/notify_on_error)
+#   - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
+#
+# Environment Variables:
+# - Parent process environment variables are accessible in notifications
+# - Example: ${USER}, ${HOME}, ${PATH}
+#
+# Dynamic Environment Variables (CLIPROUTER_ENV_FILE):
+# - Commands receive a $CLIPROUTER_ENV_FILE variable pointing to a temp file
+# - Write "VAR_NAME=value" lines to this file to expose vars to notifications
+# - Format: One variable per line, e.g., "REPORT_FILE=/path/to/file"
+# - Useful when values are computed during execution
+# - Example: echo "MYVAR=$computed_value" >> "$CLIPROUTER_ENV_FILE"
+#
+# IMPORTANT: Variables exported INSIDE the command (e.g., 'export MYVAR=value')
+# are NOT accessible in notifications due to process isolation.
+# Use CLIPROUTER_ENV_FILE to make variables available to notifications.
