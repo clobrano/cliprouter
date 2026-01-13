@@ -21,6 +21,9 @@ scripts:
 #   - name: Display name shown in the TUI (required)
 #   - command: Command to execute (required, can be multiline for scripts)
 #   - timeout: Timeout in seconds (optional, defaults to --timeout flag or 3s)
+#   - notify_before: Desktop notification before execution (optional)
+#   - notify_after: Desktop notification after successful execution (optional)
+#   - notify_on_error: Desktop notification on error (optional)
 #
 # Examples:
 #
@@ -36,5 +39,14 @@ scripts:
 #     #!/bin/bash
 #     echo "Processing: ${CLIP}"
 #     # Your script here
+#
+# - name: AI Text Editor
+#   command: ai-editor.sh ${CLIP}
+#   notify_before:
+#     message: "Starting AI editing..."
+#   notify_after:
+#     message: "Editing completed!"
+#   notify_on_error:
+#     message: "Editing failed: ${ERROR}"
 `
 }

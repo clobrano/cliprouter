@@ -40,9 +40,36 @@ scripts:
   #   timeout: 300  # 5 minutes timeout
   #   command: ffmpeg -i ${CLIP} -c:v libx264 output.mp4
 
+  # Example 8: Script with desktop notifications
+  # - name: AI Text Editor
+  #   command: ai-editor.sh ${CLIP}
+  #   notify_before:
+  #     message: "Starting AI editing..."
+  #   notify_after:
+  #     message: "Editing completed successfully!"
+  #   notify_on_error:
+  #     message: "Editing failed: ${ERROR}"
+
+  # Example 9: Long-running task with notifications
+  # - name: Upload to Cloud
+  #   timeout: 120
+  #   command: cloud-upload-tool ${CLIP}
+  #   notify_before:
+  #     message: "Uploading file..."
+  #   notify_after:
+  #     message: "Upload complete!"
+  #   notify_on_error:
+  #     message: "Upload failed: ${ERROR}"
+
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
+# - Notifications are optional and can be used to show desktop notifications:
+#   - notify_before: Shown before script execution starts
+#   - notify_after: Shown after successful execution
+#   - notify_on_error: Shown when execution fails
+#   - Use ${CLIP} to include clipboard content in notification
+#   - Use ${ERROR} to include error message in notify_on_error

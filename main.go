@@ -12,6 +12,7 @@ import (
 	"github.com/clobrano/cliprouter/internal/config"
 	"github.com/clobrano/cliprouter/internal/executor"
 	"github.com/clobrano/cliprouter/internal/logger"
+	"github.com/clobrano/cliprouter/internal/notification"
 	"github.com/clobrano/cliprouter/internal/ui"
 )
 
@@ -122,6 +123,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Send notification before execution
+	if selectedScript.NotifyBefore != nil && selectedScript.NotifyBefore.Message != "" {
+		msg := notification.SubstituteVariables(selectedScript.NotifyBefore.Message, singleLineContent, "")
+		if notifyErr := notification.Send(msg); notifyErr != nil {
+			logger.LogError("Failed to send before notification: %v", notifyErr)
+			// Don't fail execution if notification fails
+		}
+	}
+
 	// Execute the selected script and wait for it to complete
 	// The executor will block until the process exits (or times out if timeout is configured)
 	// Determine timeout: script-specific timeout > global timeout > no timeout (0)
@@ -145,12 +155,33 @@ func main() {
 	}
 
 	if err != nil {
+		// Send notification on error
+		if selectedScript.NotifyOnError != nil && selectedScript.NotifyOnError.Message != "" {
+			errMsg := err.Error()
+			if stderr != "" {
+				errMsg = stderr
+			}
+			msg := notification.SubstituteVariables(selectedScript.NotifyOnError.Message, singleLineContent, errMsg)
+			if notifyErr := notification.Send(msg); notifyErr != nil {
+				logger.LogError("Failed to send error notification: %v", notifyErr)
+			}
+		}
+
 		logger.LogError("Script execution failed: %v", err)
 		fmt.Fprintf(os.Stderr, "Error: Script execution failed: %v\n", err)
 		if stderr != "" {
 			fmt.Fprintf(os.Stderr, "stderr: %s\n", stderr)
 		}
 		os.Exit(1)
+	}
+
+	// Send notification after successful execution
+	if selectedScript.NotifyAfter != nil && selectedScript.NotifyAfter.Message != "" {
+		msg := notification.SubstituteVariables(selectedScript.NotifyAfter.Message, singleLineContent, "")
+		if notifyErr := notification.Send(msg); notifyErr != nil {
+			logger.LogError("Failed to send after notification: %v", notifyErr)
+			// Don't fail execution if notification fails
+		}
 	}
 
 	logger.LogInfo("Script executed successfully")
