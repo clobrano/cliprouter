@@ -14,11 +14,19 @@ const (
 	ConfigFileName = "cliprouter/config.yaml"
 )
 
+// Notification represents a notification configuration
+type Notification struct {
+	Title   string `yaml:"title,omitempty"`
+	Message string `yaml:"message,omitempty"`
+}
+
 // Script represents a single script configuration
 type Script struct {
-	Name    string `yaml:"name"`
-	Command string `yaml:"command"`
-	Timeout int    `yaml:"timeout,omitempty"` // Timeout in seconds (optional, 0 means use default)
+	Name         string        `yaml:"name"`
+	Command      string        `yaml:"command"`
+	Timeout      int           `yaml:"timeout,omitempty"`       // Timeout in seconds (optional, 0 means use default)
+	NotifyBefore *Notification `yaml:"notify_before,omitempty"` // Notification before command starts
+	NotifyAfter  *Notification `yaml:"notify_after,omitempty"`  // Notification after command completes
 }
 
 // Config represents the application configuration

@@ -10,6 +10,7 @@ import (
 
 	"github.com/clobrano/cliprouter/internal/config"
 	"github.com/clobrano/cliprouter/internal/logger"
+	"github.com/clobrano/cliprouter/internal/notification"
 )
 
 // Execute runs a script with the clipboard content
@@ -19,6 +20,18 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 
 	// Substitute ${CLIP} placeholder
 	command := substituteClipboard(script.Command, clipboardContent)
+
+	// Send pre-execution notification if configured
+	if script.NotifyBefore != nil {
+		sendNotification(script.NotifyBefore, notification.NotificationContext{
+			ScriptName: script.Name,
+			Command:    command,
+			ExitCode:   0,
+			Stdout:     "",
+			Stderr:     "",
+			Error:      "",
+		})
+	}
 
 	// Create context with or without timeout
 	var ctx context.Context
@@ -79,12 +92,33 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		return stdoutStr, stderrStr, fmt.Errorf("script execution timed out after %v", timeout)
 	}
 
+	// Determine exit code and error message
+	exitCode := 0
+	errorMsg := ""
 	if err != nil {
+		exitCode = 1
+		errorMsg = err.Error()
 		logger.LogError("Script '%s' failed: %v", script.Name, err)
+	} else {
+		logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
+	}
+
+	// Send post-execution notification if configured
+	if script.NotifyAfter != nil {
+		sendNotification(script.NotifyAfter, notification.NotificationContext{
+			ScriptName: script.Name,
+			Command:    command,
+			ExitCode:   exitCode,
+			Stdout:     stdoutStr,
+			Stderr:     stderrStr,
+			Error:      errorMsg,
+		})
+	}
+
+	if err != nil {
 		return stdoutStr, stderrStr, fmt.Errorf("script execution failed: %w", err)
 	}
 
-	logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
 	return stdoutStr, stderrStr, nil
 }
 
@@ -126,4 +160,21 @@ func createSimpleCommand(ctx context.Context, command string) *exec.Cmd {
 // SubstituteClipboard is a public wrapper for substituteClipboard (used in dry-run)
 func SubstituteClipboard(command, clipboardContent string) string {
 	return substituteClipboard(command, clipboardContent)
+}
+
+// sendNotification sends a notification with variable substitution
+func sendNotification(notif *config.Notification, ctx notification.NotificationContext) {
+	if notif == nil {
+		return
+	}
+
+	// Substitute variables in title and message
+	title := notification.SubstituteVariables(notif.Title, ctx)
+	message := notification.SubstituteVariables(notif.Message, ctx)
+
+	// Send the notification
+	if err := notification.Send(title, message); err != nil {
+		// Log the error but don't fail the execution
+		logger.LogError("Failed to send notification: %v", err)
+	}
 }

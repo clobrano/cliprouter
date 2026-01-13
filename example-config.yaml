@@ -40,9 +40,47 @@ scripts:
   #   timeout: 300  # 5 minutes timeout
   #   command: ffmpeg -i ${CLIP} -c:v libx264 output.mp4
 
+  # Example 8: Long-running task with notifications
+  # - name: Backup Files
+  #   timeout: 0  # No timeout
+  #   notify_before:
+  #     title: "Backup Started"
+  #     message: "Starting backup of ${SCRIPT_NAME}"
+  #   notify_after:
+  #     title: "Backup Complete"
+  #     message: "Backup finished with exit code ${EXIT_CODE}"
+  #   command: |
+  #     tar -czf backup-$(date +%Y%m%d).tar.gz ~/Documents
+
+  # Example 9: Notification with environment variables
+  # - name: Deploy Application
+  #   notify_before:
+  #     title: "Deployment"
+  #     message: "Deploying to ${DEPLOY_ENV} environment"
+  #   notify_after:
+  #     title: "Deployment ${EXIT_CODE}"
+  #     message: "Deploy to ${DEPLOY_ENV} completed. Output: ${STDOUT}"
+  #   command: |
+  #     ./deploy.sh ${CLIP}
+
+  # Example 10: Simple notification (title only)
+  # - name: Quick Task
+  #   notify_after:
+  #     title: "Task '${SCRIPT_NAME}' completed"
+  #   command: echo "Task done"
+
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
+#
+# Notification Variables:
+# - ${SCRIPT_NAME} - name of the script being executed
+# - ${COMMAND} - the command being executed
+# - ${EXIT_CODE} - exit code of the command (available in notify_after)
+# - ${STDOUT} - standard output from the command (available in notify_after)
+# - ${STDERR} - standard error from the command (available in notify_after)
+# - ${ERROR} - error message if any (available in notify_after)
+# - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
