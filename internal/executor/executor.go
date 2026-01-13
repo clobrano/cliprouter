@@ -95,24 +95,32 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Determine exit code and error message
 	exitCode := 0
 	errorMsg := ""
+	hasError := false
 	if err != nil {
 		exitCode = 1
 		errorMsg = err.Error()
+		hasError = true
 		logger.LogError("Script '%s' failed: %v", script.Name, err)
 	} else {
 		logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
 	}
 
-	// Send post-execution notification if configured
-	if script.NotifyAfter != nil {
-		sendNotification(script.NotifyAfter, notification.NotificationContext{
-			ScriptName: script.Name,
-			Command:    command,
-			ExitCode:   exitCode,
-			Stdout:     stdoutStr,
-			Stderr:     stderrStr,
-			Error:      errorMsg,
-		})
+	// Send post-execution notification based on success or failure
+	notifCtx := notification.NotificationContext{
+		ScriptName: script.Name,
+		Command:    command,
+		ExitCode:   exitCode,
+		Stdout:     stdoutStr,
+		Stderr:     stderrStr,
+		Error:      errorMsg,
+	}
+
+	if hasError && script.NotifyOnError != nil {
+		// Send error notification if command failed
+		sendNotification(script.NotifyOnError, notifCtx)
+	} else if !hasError && script.NotifyAfter != nil {
+		// Send success notification if command succeeded
+		sendNotification(script.NotifyAfter, notifCtx)
 	}
 
 	if err != nil {

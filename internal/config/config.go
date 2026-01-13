@@ -21,11 +21,12 @@ type Notification struct {
 
 // Script represents a single script configuration
 type Script struct {
-	Name         string        `yaml:"name"`
-	Command      string        `yaml:"command"`
-	Timeout      int           `yaml:"timeout,omitempty"`       // Timeout in seconds (optional, 0 means use default)
-	NotifyBefore *Notification `yaml:"notify_before,omitempty"` // Notification before command starts
-	NotifyAfter  *Notification `yaml:"notify_after,omitempty"`  // Notification after command completes
+	Name          string        `yaml:"name"`
+	Command       string        `yaml:"command"`
+	Timeout       int           `yaml:"timeout,omitempty"`        // Timeout in seconds (optional, 0 means use default)
+	NotifyBefore  *Notification `yaml:"notify_before,omitempty"`  // Notification before command starts
+	NotifyAfter   *Notification `yaml:"notify_after,omitempty"`   // Notification after command completes successfully
+	NotifyOnError *Notification `yaml:"notify_on_error,omitempty"` // Notification when command fails
 }
 
 // Config represents the application configuration

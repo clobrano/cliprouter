@@ -37,7 +37,9 @@ scripts:
 #   notify_before:
 #     message: "Processing started..."
 #   notify_after:
-#     message: "Finished with exit code ${EXIT_CODE}"
+#     message: "Processing completed successfully"
+#   notify_on_error:
+#     message: "Processing failed: ${ERROR}"
 #   command: |
 #     #!/bin/bash
 #     echo "Processing: ${CLIP}"
@@ -46,13 +48,17 @@ scripts:
 # Notifications:
 #   - Notification title is always the script name
 #   - Only the message field supports variable substitution
+#   - Three notification types:
+#     notify_before: Sent before command starts
+#     notify_after: Sent when command succeeds (exit code 0)
+#     notify_on_error: Sent when command fails (exit code != 0)
 #   - Available variables in notification messages:
 #     ${SCRIPT_NAME} - name of the script
 #     ${COMMAND} - the command being executed
-#     ${EXIT_CODE} - exit code (in notify_after)
-#     ${STDOUT} - command output (in notify_after)
-#     ${STDERR} - error output (in notify_after)
-#     ${ERROR} - error message (in notify_after)
+#     ${EXIT_CODE} - exit code (in notify_after/notify_on_error)
+#     ${STDOUT} - command output (in notify_after/notify_on_error)
+#     ${STDERR} - error output (in notify_after/notify_on_error)
+#     ${ERROR} - error message (in notify_after/notify_on_error)
 #     ${ANY_ENV_VAR} - any environment variable
 `
 }

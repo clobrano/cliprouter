@@ -55,11 +55,24 @@ scripts:
   #   notify_before:
   #     message: "Deploying to ${DEPLOY_ENV} environment"
   #   notify_after:
-  #     message: "Deploy to ${DEPLOY_ENV} completed. Output: ${STDOUT}"
+  #     message: "Deploy to ${DEPLOY_ENV} completed successfully"
+  #   notify_on_error:
+  #     message: "Deploy to ${DEPLOY_ENV} failed: ${ERROR}"
   #   command: |
   #     ./deploy.sh ${CLIP}
 
-  # Example 10: Simple notification (message only)
+  # Example 10: Separate notifications for success and error
+  # - name: Backup Files
+  #   notify_before:
+  #     message: "Starting backup..."
+  #   notify_after:
+  #     message: "Backup completed successfully"
+  #   notify_on_error:
+  #     message: "Backup failed: ${ERROR}"
+  #   command: |
+  #     rsync -av ${CLIP} /backup/
+
+  # Example 11: Simple notification (message only)
   # - name: Quick Task
   #   notify_after:
   #     message: "Task completed successfully"
@@ -75,11 +88,15 @@ scripts:
 # Notifications:
 # - Notification title is always the script name
 # - Only the message field supports variable substitution
+# - Three notification types available:
+#   - notify_before: Sent before command execution starts
+#   - notify_after: Sent when command completes successfully (exit code 0)
+#   - notify_on_error: Sent when command fails (exit code != 0)
 # - Available variables in notification messages:
 #   - ${SCRIPT_NAME} - name of the script being executed
 #   - ${COMMAND} - the command being executed
-#   - ${EXIT_CODE} - exit code of the command (available in notify_after)
-#   - ${STDOUT} - standard output from the command (available in notify_after)
-#   - ${STDERR} - standard error from the command (available in notify_after)
-#   - ${ERROR} - error message if any (available in notify_after)
+#   - ${EXIT_CODE} - exit code of the command (available in notify_after/notify_on_error)
+#   - ${STDOUT} - standard output from the command (available in notify_after/notify_on_error)
+#   - ${STDERR} - standard error from the command (available in notify_after/notify_on_error)
+#   - ${ERROR} - error message if any (available in notify_after/notify_on_error)
 #   - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
