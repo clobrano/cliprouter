@@ -3,6 +3,8 @@ package notification
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/clobrano/cliprouter/internal/logger"
@@ -84,4 +86,107 @@ func SubstituteVariables(text string, ctx NotificationContext) string {
 // formatExitCode converts exit code to string
 func formatExitCode(code int) string {
 	return fmt.Sprintf("%d", code)
+}
+
+// ActionConfig represents an action to perform after user confirmation
+type ActionConfig struct {
+	OpenFile string // Path to file to open
+	Execute  string // Command to execute
+}
+
+// SendAction sends an interactive notification that requests user confirmation
+// and executes the specified action if confirmed
+// Returns true if user confirmed, false if canceled or on error
+func SendAction(title, prompt string, action *ActionConfig, ctx NotificationContext) (bool, error) {
+	if prompt == "" || action == nil {
+		return false, nil // Nothing to do
+	}
+
+	// Check that action has at least one field set
+	if action.OpenFile == "" && action.Execute == "" {
+		logger.LogDebug("No action configured, skipping interactive notification")
+		return false, nil
+	}
+
+	// Substitute variables in prompt and action
+	prompt = SubstituteVariables(prompt, ctx)
+
+	logger.LogDebug("Sending action notification: title='%s', prompt='%s'", title, prompt)
+
+	// Show platform-specific dialog
+	confirmed, err := sendPlatformActionNotification(title, prompt)
+	if err != nil {
+		logger.LogDebug("Action notification failed: %v", err)
+		return false, err
+	}
+
+	if !confirmed {
+		logger.LogDebug("User canceled action notification")
+		return false, nil
+	}
+
+	// User confirmed, execute the action
+	if action.OpenFile != "" {
+		filePath := SubstituteVariables(action.OpenFile, ctx)
+		logger.LogDebug("Opening file: %s", filePath)
+		return true, openFile(filePath)
+	}
+
+	if action.Execute != "" {
+		command := SubstituteVariables(action.Execute, ctx)
+		logger.LogDebug("Executing command: %s", command)
+		return true, executeCommand(command)
+	}
+
+	return true, nil
+}
+
+// openFile opens a file with the default application for the platform
+func openFile(path string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "linux":
+		cmd = exec.Command("xdg-open", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", "", path)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+
+	// Don't wait for the command to finish
+	// The file will be opened in the default application
+	go cmd.Wait()
+
+	return nil
+}
+
+// executeCommand executes a command in the background
+func executeCommand(command string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "linux", "darwin":
+		cmd = exec.Command("sh", "-c", command)
+	case "windows":
+		cmd = exec.Command("cmd", "/c", command)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to execute command: %w", err)
+	}
+
+	// Don't wait for the command to finish
+	// The command will run in the background
+	go cmd.Wait()
+
+	return nil
 }
