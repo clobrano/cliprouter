@@ -69,3 +69,42 @@ func escapePowerShell(s string) string {
 	s = strings.ReplaceAll(s, "`", "``")
 	return s
 }
+
+// sendPlatformActionNotification shows an interactive dialog on Windows using PowerShell MessageBox
+// Returns true if user clicked Yes/OK, false if No/Cancel
+func sendPlatformActionNotification(title, prompt string) (bool, error) {
+	// Escape strings for PowerShell
+	safeTitle := escapePowerShell(title)
+	safePrompt := escapePowerShell(prompt)
+
+	// PowerShell script to show a MessageBox with Yes/No buttons
+	// MessageBoxButtons.YesNo = 4
+	// MessageBoxIcon.Question = 32
+	// DialogResult.Yes = 6
+	script := fmt.Sprintf(`
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+$result = [System.Windows.Forms.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')
+if ($result -eq 'Yes') {
+    exit 0
+} else {
+    exit 1
+}
+`, safePrompt, safeTitle)
+
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)
+	logger.LogDebug("Executing PowerShell dialog script")
+
+	err := cmd.Run()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode := exitErr.ExitCode()
+			logger.LogDebug("PowerShell dialog exited with code %d", exitCode)
+			// Exit code 0 = Yes, 1 = No
+			return exitCode == 0, nil
+		}
+		return false, fmt.Errorf("failed to show dialog: %w", err)
+	}
+
+	logger.LogDebug("User confirmed action")
+	return true, nil
+}

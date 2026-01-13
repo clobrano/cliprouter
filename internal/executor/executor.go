@@ -159,6 +159,11 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		sendNotification(script.Name, script.NotifyAfter, notifCtx)
 	}
 
+	// Send interactive action notification if configured (only on success)
+	if !hasError && script.NotifyAction != nil {
+		sendActionNotification(script.Name, script.NotifyAction, notifCtx)
+	}
+
 	if err != nil {
 		return stdoutStr, stderrStr, fmt.Errorf("script execution failed: %w", err)
 	}
@@ -220,6 +225,33 @@ func sendNotification(title, message string, ctx notification.NotificationContex
 	if err := notification.Send(title, message); err != nil {
 		// Log the error but don't fail the execution
 		logger.LogError("Failed to send notification: %v", err)
+	}
+}
+
+// sendActionNotification sends an interactive notification that executes an action on confirmation
+func sendActionNotification(title string, notifyAction *config.NotifyAction, ctx notification.NotificationContext) {
+	if notifyAction == nil || notifyAction.Prompt == "" || notifyAction.OnConfirm == nil {
+		return
+	}
+
+	// Convert config.ActionConfig to notification.ActionConfig
+	action := &notification.ActionConfig{
+		OpenFile: notifyAction.OnConfirm.OpenFile,
+		Execute:  notifyAction.OnConfirm.Execute,
+	}
+
+	// Send the action notification (this will show dialog and execute action if confirmed)
+	confirmed, err := notification.SendAction(title, notifyAction.Prompt, action, ctx)
+	if err != nil {
+		// Log the error but don't fail the execution
+		logger.LogError("Failed to send action notification: %v", err)
+		return
+	}
+
+	if confirmed {
+		logger.LogInfo("User confirmed action notification")
+	} else {
+		logger.LogInfo("User declined action notification")
 	}
 }
 

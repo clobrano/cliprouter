@@ -14,14 +14,27 @@ const (
 	ConfigFileName = "cliprouter/config.yaml"
 )
 
+// NotifyAction represents an interactive notification that requires user response
+type NotifyAction struct {
+	Prompt    string        `yaml:"prompt"`     // Message to show in the dialog
+	OnConfirm *ActionConfig `yaml:"on_confirm"` // Action to execute when user confirms
+}
+
+// ActionConfig represents the action to take when user confirms
+type ActionConfig struct {
+	OpenFile string `yaml:"open_file,omitempty"` // Path to file to open (supports variable substitution)
+	Execute  string `yaml:"execute,omitempty"`   // Command to execute (supports variable substitution)
+}
+
 // Script represents a single script configuration
 type Script struct {
-	Name          string `yaml:"name"`
-	Command       string `yaml:"command"`
-	Timeout       int    `yaml:"timeout,omitempty"`         // Timeout in seconds (optional, 0 means use default)
-	NotifyBefore  string `yaml:"notify_before,omitempty"`   // Notification message before command starts
-	NotifyAfter   string `yaml:"notify_after,omitempty"`    // Notification message after command completes successfully
-	NotifyOnError string `yaml:"notify_on_error,omitempty"` // Notification message when command fails
+	Name          string        `yaml:"name"`
+	Command       string        `yaml:"command"`
+	Timeout       int           `yaml:"timeout,omitempty"`          // Timeout in seconds (optional, 0 means use default)
+	NotifyBefore  string        `yaml:"notify_before,omitempty"`    // Notification message before command starts
+	NotifyAfter   string        `yaml:"notify_after,omitempty"`     // Notification message after command completes successfully
+	NotifyOnError string        `yaml:"notify_on_error,omitempty"`  // Notification message when command fails
+	NotifyAction  *NotifyAction `yaml:"notify_action,omitempty"`    // Interactive notification after command completes
 }
 
 // Config represents the application configuration
