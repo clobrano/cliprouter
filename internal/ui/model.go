@@ -15,6 +15,8 @@ type Model struct {
 	clipboardExcerpt string          // Clipboard content excerpt
 	selectedScript   *config.Script  // Script chosen by user (when Enter pressed)
 	quitting         bool            // Whether user is quitting
+	width            int             // Terminal width
+	height           int             // Terminal height
 }
 
 // NewModel creates a new TUI model
@@ -38,6 +40,12 @@ func (m Model) Init() tea.Cmd {
 // Update handles messages and updates the model (Bubble Tea interface)
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		// Capture terminal dimensions for centering
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
