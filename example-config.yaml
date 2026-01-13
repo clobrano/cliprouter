@@ -78,6 +78,16 @@ scripts:
   #     message: "Task completed successfully"
   #   command: echo "Task done"
 
+  # Example 12: Using command output in notifications
+  # NOTE: Env vars exported INSIDE the command are NOT accessible in notifications
+  # Workaround: Echo the value and use ${STDOUT}
+  # - name: Process with Output
+  #   notify_after:
+  #     message: "Result: ${STDOUT}"
+  #   command: |
+  #     export RESULT="processed data"
+  #     echo "$RESULT"
+
 # Notes:
 # - ${CLIP} is replaced with clipboard content (properly escaped)
 # - Commands can be multiline (use | for multiline YAML)
@@ -100,3 +110,9 @@ scripts:
 #   - ${STDERR} - standard error from the command (available in notify_after/notify_on_error)
 #   - ${ERROR} - error message if any (available in notify_after/notify_on_error)
 #   - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
+#
+# IMPORTANT: Environment variable scope
+# - Only environment variables from the PARENT process are accessible
+# - Variables exported INSIDE the command (e.g., 'export MYVAR=value') are NOT accessible
+# - This is due to process isolation - child process env vars don't propagate to parent
+# - Workaround: Use ${STDOUT} to capture command output, or set env vars before running cliprouter

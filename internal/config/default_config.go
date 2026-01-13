@@ -59,6 +59,7 @@ scripts:
 #     ${STDOUT} - command output (in notify_after/notify_on_error)
 #     ${STDERR} - error output (in notify_after/notify_on_error)
 #     ${ERROR} - error message (in notify_after/notify_on_error)
-#     ${ANY_ENV_VAR} - any environment variable
+#     ${ANY_ENV_VAR} - any environment variable from parent process
+#   - NOTE: Env vars exported INSIDE commands are not accessible (use ${STDOUT})
 `
 }
