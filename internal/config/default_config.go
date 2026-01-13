@@ -35,23 +35,24 @@ scripts:
 # - name: Long Running Process
 #   timeout: 300  # 5 minutes
 #   notify_before:
-#     title: "Processing Started"
-#     message: "Running ${SCRIPT_NAME}"
+#     message: "Processing started..."
 #   notify_after:
-#     title: "Processing Complete"
 #     message: "Finished with exit code ${EXIT_CODE}"
 #   command: |
 #     #!/bin/bash
 #     echo "Processing: ${CLIP}"
 #     # Your script here
 #
-# Notification Variables:
-#   ${SCRIPT_NAME} - name of the script
-#   ${COMMAND} - the command being executed
-#   ${EXIT_CODE} - exit code (in notify_after)
-#   ${STDOUT} - command output (in notify_after)
-#   ${STDERR} - error output (in notify_after)
-#   ${ERROR} - error message (in notify_after)
-#   ${ANY_ENV_VAR} - any environment variable
+# Notifications:
+#   - Notification title is always the script name
+#   - Only the message field supports variable substitution
+#   - Available variables in notification messages:
+#     ${SCRIPT_NAME} - name of the script
+#     ${COMMAND} - the command being executed
+#     ${EXIT_CODE} - exit code (in notify_after)
+#     ${STDOUT} - command output (in notify_after)
+#     ${STDERR} - error output (in notify_after)
+#     ${ERROR} - error message (in notify_after)
+#     ${ANY_ENV_VAR} - any environment variable
 `
 }

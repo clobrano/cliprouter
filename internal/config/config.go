@@ -16,7 +16,6 @@ const (
 
 // Notification represents a notification configuration
 type Notification struct {
-	Title   string `yaml:"title,omitempty"`
 	Message string `yaml:"message,omitempty"`
 }
 

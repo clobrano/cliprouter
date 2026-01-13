@@ -163,13 +163,16 @@ func SubstituteClipboard(command, clipboardContent string) string {
 }
 
 // sendNotification sends a notification with variable substitution
+// The title is always the script name, only the message supports variable substitution
 func sendNotification(notif *config.Notification, ctx notification.NotificationContext) {
 	if notif == nil {
 		return
 	}
 
-	// Substitute variables in title and message
-	title := notification.SubstituteVariables(notif.Title, ctx)
+	// Use script name as title
+	title := ctx.ScriptName
+
+	// Substitute variables in message
 	message := notification.SubstituteVariables(notif.Message, ctx)
 
 	// Send the notification
