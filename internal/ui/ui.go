@@ -7,34 +7,49 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Catppuccin Mocha color palette
+var (
+	catppuccinMauve    = lipgloss.Color("#cba6f7") // Purple - for titles
+	catppuccinPink     = lipgloss.Color("#f5c2e7") // Pink - for selected items
+	catppuccinBlue     = lipgloss.Color("#89b4fa") // Blue - for accents
+	catppuccinText     = lipgloss.Color("#cdd6f4") // Main text
+	catppuccinSubtext0 = lipgloss.Color("#a6adc8") // Subtle text
+	catppuccinSurface0 = lipgloss.Color("#313244") // Surface color for borders
+)
+
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("39")).
+			Foreground(catppuccinMauve).
 			MarginBottom(1)
 
 	clipboardStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
+			Foreground(catppuccinText).
 			MarginBottom(1)
 
 	instructionsStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241")).
+				Foreground(catppuccinSubtext0).
 				MarginBottom(1)
 
 	selectedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("170")).
+			Foreground(catppuccinPink).
 			Bold(true)
 
 	normalStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(catppuccinText)
 
 	footerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
+			Foreground(catppuccinSubtext0).
 			MarginTop(1)
 
 	searchStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("39")).
+			Foreground(catppuccinBlue).
 			MarginBottom(1)
+
+	borderStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(catppuccinMauve).
+			Padding(1, 2)
 )
 
 // View renders the TUI (Bubble Tea interface)
@@ -42,7 +57,7 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	// Title
-	b.WriteString(titleStyle.Render("┌─ Clipboard Router ─────────────────────────────┐"))
+	b.WriteString(titleStyle.Render("Clipboard Router"))
 	b.WriteString("\n")
 
 	// Clipboard excerpt
@@ -83,5 +98,21 @@ func (m Model) View() string {
 	b.WriteString("\n")
 	b.WriteString(footerStyle.Render("[Press ESC to quit]"))
 
-	return b.String()
+	content := b.String()
+
+	// Apply border with 2-character padding on all sides
+	borderedContent := borderStyle.Render(content)
+
+	// Center the content in the available terminal space
+	if m.width > 0 && m.height > 0 {
+		return lipgloss.Place(
+			m.width,
+			m.height,
+			lipgloss.Center,
+			lipgloss.Center,
+			borderedContent,
+		)
+	}
+
+	return borderedContent
 }
