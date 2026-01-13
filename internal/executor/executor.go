@@ -44,7 +44,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 			Stdout:     "",
 			Stderr:     "",
 			Error:      "",
-			ScriptEnv:  script.Env,
+			ScriptEnv:  nil,
 		})
 	}
 
@@ -80,14 +80,6 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Add the CLIPROUTER_ENV_FILE variable
 	cmd.Env = append(cmd.Env, fmt.Sprintf("CLIPROUTER_ENV_FILE=%s", envFilePath))
 	logger.LogDebug("Setting env var: CLIPROUTER_ENV_FILE=%s", envFilePath)
-
-	// Add script-specific environment variables
-	if len(script.Env) > 0 {
-		for key, value := range script.Env {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
-			logger.LogDebug("Setting env var: %s=%s", key, value)
-		}
-	}
 
 	// Capture stdout and stderr
 	var stdout, stderr bytes.Buffer
@@ -137,19 +129,15 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	}
 
 	// Read dynamic environment variables from the env file
-	finalEnv := make(map[string]string)
-	// Start with config env vars
-	for k, v := range script.Env {
-		finalEnv[k] = v
-	}
-	// Read and merge variables from the env file (these override config vars)
+	var finalEnv map[string]string
 	if envVars, err := readEnvFile(envFilePath); err == nil {
+		finalEnv = envVars
 		for k, v := range envVars {
-			finalEnv[k] = v
 			logger.LogDebug("Dynamic env var from script: %s=%s", k, v)
 		}
 	} else {
 		logger.LogDebug("No dynamic env vars or error reading env file: %v", err)
+		finalEnv = make(map[string]string)
 	}
 
 	// Send post-execution notification based on success or failure

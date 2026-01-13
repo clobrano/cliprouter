@@ -50,19 +50,17 @@ scripts:
   #   command: |
   #     tar -czf backup-$(date +%Y%m%d).tar.gz ~/Documents
 
-  # Example 9: Notification with script-specific environment variables
+  # Example 9: Notification with dynamic environment variables
   # - name: Deploy Application
-  #   env:
-  #     DEPLOY_ENV: "production"
-  #     APP_NAME: "myapp"
   #   notify_before:
-  #     message: "Deploying ${APP_NAME} to ${DEPLOY_ENV}"
+  #     message: "Deploying application"
   #   notify_after:
-  #     message: "${APP_NAME} deployed to ${DEPLOY_ENV} successfully"
+  #     message: "Deployment to ${DEPLOY_ENV} completed successfully"
   #   notify_on_error:
-  #     message: "${APP_NAME} deploy to ${DEPLOY_ENV} failed: ${ERROR}"
+  #     message: "Deployment to ${DEPLOY_ENV} failed: ${ERROR}"
   #   command: |
-  #     echo "Deploying $APP_NAME to $DEPLOY_ENV"
+  #     DEPLOY_ENV="production"
+  #     echo "DEPLOY_ENV=$DEPLOY_ENV" >> "$CLIPROUTER_ENV_FILE"
   #     ./deploy.sh ${CLIP}
 
   # Example 10: Separate notifications for success and error
@@ -83,10 +81,8 @@ scripts:
   #   command: echo "Task done"
 
   # Example 12: Dynamic environment variables using CLIPROUTER_ENV_FILE
-  # Commands can write to $CLIPROUTER_ENV_FILE to update env vars for notifications
+  # Commands can write to $CLIPROUTER_ENV_FILE to expose vars to notifications
   # - name: Generate Report
-  #   env:
-  #     REPORT_FILE: "/tmp/default-report.txt"  # Default value
   #   notify_after:
   #     message: "Report generated at ${REPORT_FILE}"
   #   command: |
@@ -94,7 +90,7 @@ scripts:
   #     REPORT_FILE="/tmp/report-$(date +%s).txt"
   #     echo "Generating report: $REPORT_FILE"
   #
-  #     # Write to CLIPROUTER_ENV_FILE to update the variable for notifications
+  #     # Write to CLIPROUTER_ENV_FILE to make variable available in notifications
   #     echo "REPORT_FILE=$REPORT_FILE" >> "$CLIPROUTER_ENV_FILE"
   #
   #     # Generate report
@@ -106,7 +102,6 @@ scripts:
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
-# - 'env' is optional: define script-specific environment variables as key-value pairs
 #
 # Notifications:
 # - Notification title is always the script name
@@ -125,19 +120,16 @@ scripts:
 #   - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
 #
 # Environment Variables:
-# - Script-specific env vars (defined in 'env' field) are available in:
-#   - The command execution environment
-#   - Notification messages (via ${VAR_NAME})
-# - Parent process environment variables are also accessible
+# - Parent process environment variables are accessible in notifications
+# - Example: ${USER}, ${HOME}, ${PATH}
 #
 # Dynamic Environment Variables (CLIPROUTER_ENV_FILE):
 # - Commands receive a $CLIPROUTER_ENV_FILE variable pointing to a temp file
-# - Write "VAR_NAME=value" lines to this file to update env vars for notifications
+# - Write "VAR_NAME=value" lines to this file to expose vars to notifications
 # - Format: One variable per line, e.g., "REPORT_FILE=/path/to/file"
-# - These override config 'env' values for notifications
 # - Useful when values are computed during execution
 # - Example: echo "MYVAR=$computed_value" >> "$CLIPROUTER_ENV_FILE"
 #
-# Note: Variables exported INSIDE the command (e.g., 'export MYVAR=value')
+# IMPORTANT: Variables exported INSIDE the command (e.g., 'export MYVAR=value')
 # are NOT accessible in notifications due to process isolation.
-# Use CLIPROUTER_ENV_FILE or ${STDOUT} instead.
+# Use CLIPROUTER_ENV_FILE to make variables available to notifications.
