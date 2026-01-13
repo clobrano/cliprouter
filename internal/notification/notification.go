@@ -16,6 +16,7 @@ type NotificationContext struct {
 	Stdout     string
 	Stderr     string
 	Error      string
+	ScriptEnv  map[string]string // Script-specific environment variables
 }
 
 // Send sends a notification with the given title and message
@@ -62,7 +63,13 @@ func SubstituteVariables(text string, ctx NotificationContext) string {
 		case "SCRIPT_NAME", "COMMAND", "EXIT_CODE", "STDOUT", "STDERR", "ERROR":
 			return "${" + varName + "}" // Keep as is, already substituted above
 		default:
-			// Try to get from environment
+			// First, try to get from script-specific environment variables
+			if ctx.ScriptEnv != nil {
+				if value, ok := ctx.ScriptEnv[varName]; ok {
+					return value
+				}
+			}
+			// Then try to get from parent process environment
 			if value := os.Getenv(varName); value != "" {
 				return value
 			}

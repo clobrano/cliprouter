@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -30,6 +31,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 			Stdout:     "",
 			Stderr:     "",
 			Error:      "",
+			ScriptEnv:  script.Env,
 		})
 	}
 
@@ -56,6 +58,17 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		// Parse and execute as simple command
 		cmd = createSimpleCommand(ctx, command)
 		logger.LogDebug("Executing as simple command: %v", cmd.Args)
+	}
+
+	// Set environment variables for the command
+	if len(script.Env) > 0 {
+		// Start with the parent process environment
+		cmd.Env = os.Environ()
+		// Add script-specific environment variables
+		for key, value := range script.Env {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+			logger.LogDebug("Setting env var: %s=%s", key, value)
+		}
 	}
 
 	// Capture stdout and stderr
@@ -113,6 +126,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		Stdout:     stdoutStr,
 		Stderr:     stderrStr,
 		Error:      errorMsg,
+		ScriptEnv:  script.Env,
 	}
 
 	if hasError && script.NotifyOnError != nil {

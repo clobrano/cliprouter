@@ -50,15 +50,19 @@ scripts:
   #   command: |
   #     tar -czf backup-$(date +%Y%m%d).tar.gz ~/Documents
 
-  # Example 9: Notification with environment variables
+  # Example 9: Notification with script-specific environment variables
   # - name: Deploy Application
+  #   env:
+  #     DEPLOY_ENV: "production"
+  #     APP_NAME: "myapp"
   #   notify_before:
-  #     message: "Deploying to ${DEPLOY_ENV} environment"
+  #     message: "Deploying ${APP_NAME} to ${DEPLOY_ENV}"
   #   notify_after:
-  #     message: "Deploy to ${DEPLOY_ENV} completed successfully"
+  #     message: "${APP_NAME} deployed to ${DEPLOY_ENV} successfully"
   #   notify_on_error:
-  #     message: "Deploy to ${DEPLOY_ENV} failed: ${ERROR}"
+  #     message: "${APP_NAME} deploy to ${DEPLOY_ENV} failed: ${ERROR}"
   #   command: |
+  #     echo "Deploying $APP_NAME to $DEPLOY_ENV"
   #     ./deploy.sh ${CLIP}
 
   # Example 10: Separate notifications for success and error
@@ -94,6 +98,7 @@ scripts:
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
+# - 'env' is optional: define script-specific environment variables as key-value pairs
 #
 # Notifications:
 # - Notification title is always the script name
@@ -111,8 +116,11 @@ scripts:
 #   - ${ERROR} - error message if any (available in notify_after/notify_on_error)
 #   - ${ANY_ENV_VAR} - any environment variable (e.g., ${USER}, ${HOME})
 #
-# IMPORTANT: Environment variable scope
-# - Only environment variables from the PARENT process are accessible
-# - Variables exported INSIDE the command (e.g., 'export MYVAR=value') are NOT accessible
+# Environment Variables:
+# - Script-specific env vars (defined in 'env' field) are available in:
+#   - The command execution environment
+#   - Notification messages (via ${VAR_NAME})
+# - Parent process environment variables are also accessible
+# - Variables exported INSIDE the command (e.g., 'export MYVAR=value') are NOT accessible in notifications
 # - This is due to process isolation - child process env vars don't propagate to parent
-# - Workaround: Use ${STDOUT} to capture command output, or set env vars before running cliprouter
+# - Alternative workaround: Use ${STDOUT} to capture command output
