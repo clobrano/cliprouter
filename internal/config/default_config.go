@@ -14,8 +14,8 @@ scripts:
     command: |
       echo "$(date): ${CLIP}" >> ~/cliprouter-notes.txt
 
-# Available placeholder:
-#   ${CLIP} - Will be replaced with the clipboard content
+# Available environment variable:
+#   ${CLIP} - Contains the clipboard content (expanded by the shell)
 #
 # Configuration:
 #   - name: Display name shown in the TUI (required)

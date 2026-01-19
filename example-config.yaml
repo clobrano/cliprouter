@@ -172,7 +172,8 @@ scripts:
   #     echo "RECORDS_PROCESSED=$RECORDS_PROCESSED" >> "$CLIPROUTER_ENV_FILE"
 
 # Notes:
-# - ${CLIP} is replaced with clipboard content (properly escaped)
+# - ${CLIP} is available as an environment variable containing the clipboard content
+# - The shell expands ${CLIP} automatically when the command runs
 # - Commands can be multiline (use | for multiline YAML)
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
