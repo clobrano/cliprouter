@@ -13,61 +13,39 @@ func TestSubstituteClipboard(t *testing.T) {
 		name      string
 		command   string
 		clipboard string
-		contains  string // Check if output contains this
+		expected  string
 	}{
 		{
 			name:      "simple substitution",
 			command:   "echo ${CLIP}",
 			clipboard: "hello",
-			contains:  "hello",
+			expected:  "echo hello",
 		},
 		{
 			name:      "multiple substitutions",
 			command:   "echo ${CLIP} and ${CLIP}",
 			clipboard: "test",
-			contains:  "test",
+			expected:  "echo test and test",
 		},
 		{
 			name:      "no substitution",
 			command:   "echo hello",
 			clipboard: "world",
-			contains:  "echo hello",
+			expected:  "echo hello",
 		},
 		{
 			name:      "special characters",
 			command:   "echo ${CLIP}",
 			clipboard: "hello'world",
-			contains:  "hello", // Should be escaped
+			expected:  "echo hello'world",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := substituteClipboard(tt.command, tt.clipboard)
-			if !strings.Contains(result, tt.contains) {
-				t.Errorf("substituteClipboard() = %q, should contain %q", result, tt.contains)
-			}
-		})
-	}
-}
-
-func TestEscapeShellString(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"simple", "hello", "'hello'"},
-		{"with spaces", "hello world", "'hello world'"},
-		{"with single quote", "it's", "'it'\"'\"'s'"},
-		{"empty", "", "''"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := escapeShellString(tt.input)
 			if result != tt.expected {
-				t.Errorf("escapeShellString(%q) = %q, expected %q", tt.input, result, tt.expected)
+				t.Errorf("substituteClipboard() = %q, expected %q", result, tt.expected)
 			}
 		})
 	}
@@ -263,5 +241,50 @@ echo 'done'
 	// Verify the process completed
 	if !strings.Contains(stdout, "done") {
 		t.Errorf("Execute() stdout = %q, should contain 'done'", stdout)
+	}
+}
+
+// TestExecuteWithSingleQuoteInClipboard verifies that single quotes in clipboard are handled correctly
+func TestExecuteWithSingleQuoteInClipboard(t *testing.T) {
+	script := config.Script{
+		Name:    "Single Quote Test",
+		Command: "echo ${CLIP}",
+	}
+
+	// Test with clipboard containing a single quote (common case: "don't")
+	clipboard := "don't"
+	timeout := 5 * time.Second
+	stdout, _, err := Execute(script, clipboard, timeout)
+
+	if err != nil {
+		t.Errorf("Execute() should not have failed: %v", err)
+	}
+
+	// Verify that the output contains "don't"
+	if !strings.Contains(stdout, "don't") {
+		t.Errorf("Execute() stdout = %q, should contain %q", stdout, "don't")
+	}
+}
+
+// TestExecuteWithClipInDoubleQuotes verifies that ${CLIP} works inside double quotes
+func TestExecuteWithClipInDoubleQuotes(t *testing.T) {
+	script := config.Script{
+		Name:    "Double Quote Test",
+		Command: `echo "Message: ${CLIP}"`,
+	}
+
+	// Test with clipboard containing single quote
+	clipboard := "don't forget"
+	timeout := 5 * time.Second
+	stdout, _, err := Execute(script, clipboard, timeout)
+
+	if err != nil {
+		t.Errorf("Execute() should not have failed: %v", err)
+	}
+
+	// Verify that the output contains the full message with quote
+	expected := "Message: don't forget"
+	if !strings.Contains(stdout, expected) {
+		t.Errorf("Execute() stdout = %q, should contain %q", stdout, expected)
 	}
 }

@@ -20,8 +20,8 @@ import (
 func Execute(script config.Script, clipboardContent string, timeout time.Duration) (string, string, error) {
 	logger.LogInfo("Executing script: %s", script.Name)
 
-	// Substitute ${CLIP} placeholder
-	command := substituteClipboard(script.Command, clipboardContent)
+	// Use the command as-is; clipboard content will be passed via CLIP env var
+	command := script.Command
 
 	// Create a temporary file for dynamic environment variables
 	envFile, err := ioutil.TempFile("", "cliprouter-env-*.txt")
@@ -62,11 +62,16 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	defer cancel()
 
 	// Detect if multiline (shell script) or simple command
+	// Force shell execution if the command contains ${CLIP} to allow shell variable expansion
 	var cmd *exec.Cmd
-	if isMultilineCommand(script.Command) {
-		// Execute as shell script
-		cmd = exec.CommandContext(ctx, "/bin/sh", "-c", command)
-		logger.LogDebug("Executing as shell script: /bin/sh -c %s", command)
+	if isMultilineCommand(script.Command) || strings.Contains(script.Command, "${CLIP}") {
+		// Execute as shell script using user's shell for better environment support
+		shell := os.Getenv("SHELL")
+		if shell == "" {
+			shell = "/bin/sh"
+		}
+		cmd = exec.CommandContext(ctx, shell, "-c", command)
+		logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 	} else {
 		// Parse and execute as simple command
 		cmd = createSimpleCommand(ctx, command)
@@ -76,6 +81,10 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Set environment variables for the command
 	// Always start with parent process environment
 	cmd.Env = os.Environ()
+
+	// Add the CLIP variable with clipboard content
+	cmd.Env = append(cmd.Env, fmt.Sprintf("CLIP=%s", clipboardContent))
+	logger.LogDebug("Setting env var: CLIP=[clipboard content]")
 
 	// Add the CLIPROUTER_ENV_FILE variable
 	cmd.Env = append(cmd.Env, fmt.Sprintf("CLIPROUTER_ENV_FILE=%s", envFilePath))
@@ -171,18 +180,10 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	return stdoutStr, stderrStr, nil
 }
 
-// substituteClipboard replaces ${CLIP} with the clipboard content
+// substituteClipboard replaces ${CLIP} with the clipboard content for display purposes
+// Note: In actual execution, CLIP is passed as an environment variable
 func substituteClipboard(command, clipboardContent string) string {
-	// Escape the clipboard content for shell safety
-	escaped := escapeShellString(clipboardContent)
-	return strings.ReplaceAll(command, "${CLIP}", escaped)
-}
-
-// escapeShellString escapes a string for safe use in shell commands
-func escapeShellString(s string) string {
-	// Wrap in single quotes and escape any existing single quotes
-	s = strings.ReplaceAll(s, "'", "'\"'\"'")
-	return "'" + s + "'"
+	return strings.ReplaceAll(command, "${CLIP}", clipboardContent)
 }
 
 // isMultilineCommand checks if the command contains newlines
