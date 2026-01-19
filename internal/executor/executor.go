@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -24,7 +23,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	command := script.Command
 
 	// Create a temporary file for dynamic environment variables
-	envFile, err := ioutil.TempFile("", "cliprouter-env-*.txt")
+	envFile, err := os.CreateTemp("", "cliprouter-env-*.txt")
 	if err != nil {
 		logger.LogError("Failed to create env file: %v", err)
 		return "", "", fmt.Errorf("failed to create env file: %w", err)
@@ -68,7 +67,8 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		// Check if script has a shebang - if so, write to temp file to respect it
 		if hasShebang(script.Command) {
 			// Write script to temp file and execute it to respect shebang
-			scriptFile, err := ioutil.TempFile("", "cliprouter-script-*.sh")
+			// No extension needed - the shebang specifies the interpreter
+			scriptFile, err := os.CreateTemp("", "cliprouter-script-*")
 			if err != nil {
 				logger.LogError("Failed to create script file: %v", err)
 				return "", "", fmt.Errorf("failed to create script file: %w", err)
@@ -295,7 +295,7 @@ func sendActionNotification(title string, notifyAction *config.NotifyAction, ctx
 // Lines starting with # are ignored as comments
 // Empty lines are ignored
 func readEnvFile(path string) (map[string]string, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
