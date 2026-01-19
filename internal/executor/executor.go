@@ -65,13 +65,42 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Force shell execution if the command contains ${CLIP} to allow shell variable expansion
 	var cmd *exec.Cmd
 	if isMultilineCommand(script.Command) || strings.Contains(script.Command, "${CLIP}") {
-		// Execute as shell script using user's shell for better environment support
-		shell := os.Getenv("SHELL")
-		if shell == "" {
-			shell = "/bin/sh"
+		// Check if script has a shebang - if so, write to temp file to respect it
+		if hasShebang(script.Command) {
+			// Write script to temp file and execute it to respect shebang
+			scriptFile, err := ioutil.TempFile("", "cliprouter-script-*.sh")
+			if err != nil {
+				logger.LogError("Failed to create script file: %v", err)
+				return "", "", fmt.Errorf("failed to create script file: %w", err)
+			}
+			scriptPath := scriptFile.Name()
+			defer os.Remove(scriptPath)
+
+			// Write the script content
+			if _, err := scriptFile.WriteString(command); err != nil {
+				scriptFile.Close()
+				logger.LogError("Failed to write script file: %v", err)
+				return "", "", fmt.Errorf("failed to write script file: %w", err)
+			}
+			scriptFile.Close()
+
+			// Make it executable
+			if err := os.Chmod(scriptPath, 0700); err != nil {
+				logger.LogError("Failed to make script executable: %v", err)
+				return "", "", fmt.Errorf("failed to make script executable: %w", err)
+			}
+
+			cmd = exec.CommandContext(ctx, scriptPath)
+			logger.LogDebug("Executing script file with shebang: %s", scriptPath)
+		} else {
+			// Execute as shell script using user's shell for better environment support
+			shell := os.Getenv("SHELL")
+			if shell == "" {
+				shell = "/bin/sh"
+			}
+			cmd = exec.CommandContext(ctx, shell, "-c", command)
+			logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 		}
-		cmd = exec.CommandContext(ctx, shell, "-c", command)
-		logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 	} else {
 		// Parse and execute as simple command
 		cmd = createSimpleCommand(ctx, command)
@@ -189,6 +218,11 @@ func substituteClipboard(command, clipboardContent string) string {
 // isMultilineCommand checks if the command contains newlines
 func isMultilineCommand(command string) bool {
 	return strings.Contains(command, "\n")
+}
+
+// hasShebang checks if the command starts with a shebang (#!)
+func hasShebang(command string) bool {
+	return strings.HasPrefix(strings.TrimSpace(command), "#!")
 }
 
 // createSimpleCommand parses a simple command into exec.Command
