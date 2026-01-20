@@ -288,3 +288,68 @@ func TestExecuteWithClipInDoubleQuotes(t *testing.T) {
 		t.Errorf("Execute() stdout = %q, should contain %q", stdout, expected)
 	}
 }
+
+// TestExecuteWithShebang verifies that scripts with shebangs are executed with the correct interpreter
+func TestExecuteWithShebang(t *testing.T) {
+	script := config.Script{
+		Name: "Bash Shebang Test",
+		Command: `#!/usr/bin/env bash
+
+PR_LINK=${CLIP}
+
+if [[ $PR_LINK =~ github\.com/([^/]+)/([^/]+)/pull/([0-9]+) ]]; then
+  echo "Org: ${BASH_REMATCH[1]}"
+  echo "Project: ${BASH_REMATCH[2]}"
+  echo "PR: ${BASH_REMATCH[3]}"
+else
+  echo "No match"
+  exit 1
+fi
+`,
+	}
+
+	// Test with a GitHub PR URL
+	clipboard := "https://github.com/owner/repo/pull/123"
+	timeout := 5 * time.Second
+	stdout, _, err := Execute(script, clipboard, timeout)
+
+	if err != nil {
+		t.Errorf("Execute() should not have failed: %v", err)
+	}
+
+	// Verify that BASH_REMATCH worked correctly
+	if !strings.Contains(stdout, "Org: owner") {
+		t.Errorf("Execute() stdout = %q, should contain 'Org: owner'", stdout)
+	}
+	if !strings.Contains(stdout, "Project: repo") {
+		t.Errorf("Execute() stdout = %q, should contain 'Project: repo'", stdout)
+	}
+	if !strings.Contains(stdout, "PR: 123") {
+		t.Errorf("Execute() stdout = %q, should contain 'PR: 123'", stdout)
+	}
+}
+
+// TestHasShebang tests the hasShebang helper function
+func TestHasShebang(t *testing.T) {
+	tests := []struct {
+		name     string
+		command  string
+		expected bool
+	}{
+		{"bash shebang", "#!/bin/bash\necho test", true},
+		{"env bash shebang", "#!/usr/bin/env bash\necho test", true},
+		{"with whitespace", "  #!/bin/sh\necho test", true},
+		{"no shebang", "echo test", false},
+		{"multiline no shebang", "echo test\necho more", false},
+		{"comment not shebang", "# comment\necho test", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := hasShebang(tt.command)
+			if result != tt.expected {
+				t.Errorf("hasShebang(%q) = %v, expected %v", tt.command, result, tt.expected)
+			}
+		})
+	}
+}

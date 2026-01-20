@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -24,7 +23,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	command := script.Command
 
 	// Create a temporary file for dynamic environment variables
-	envFile, err := ioutil.TempFile("", "cliprouter-env-*.txt")
+	envFile, err := os.CreateTemp("", "cliprouter-env-*.txt")
 	if err != nil {
 		logger.LogError("Failed to create env file: %v", err)
 		return "", "", fmt.Errorf("failed to create env file: %w", err)
@@ -65,13 +64,43 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Force shell execution if the command contains ${CLIP} to allow shell variable expansion
 	var cmd *exec.Cmd
 	if isMultilineCommand(script.Command) || strings.Contains(script.Command, "${CLIP}") {
-		// Execute as shell script using user's shell for better environment support
-		shell := os.Getenv("SHELL")
-		if shell == "" {
-			shell = "/bin/sh"
+		// Check if script has a shebang - if so, write to temp file to respect it
+		if hasShebang(script.Command) {
+			// Write script to temp file and execute it to respect shebang
+			// No extension needed - the shebang specifies the interpreter
+			scriptFile, err := os.CreateTemp("", "cliprouter-script-*")
+			if err != nil {
+				logger.LogError("Failed to create script file: %v", err)
+				return "", "", fmt.Errorf("failed to create script file: %w", err)
+			}
+			scriptPath := scriptFile.Name()
+			defer os.Remove(scriptPath)
+
+			// Write the script content
+			if _, err := scriptFile.WriteString(command); err != nil {
+				scriptFile.Close()
+				logger.LogError("Failed to write script file: %v", err)
+				return "", "", fmt.Errorf("failed to write script file: %w", err)
+			}
+			scriptFile.Close()
+
+			// Make it executable
+			if err := os.Chmod(scriptPath, 0700); err != nil {
+				logger.LogError("Failed to make script executable: %v", err)
+				return "", "", fmt.Errorf("failed to make script executable: %w", err)
+			}
+
+			cmd = exec.CommandContext(ctx, scriptPath)
+			logger.LogDebug("Executing script file with shebang: %s", scriptPath)
+		} else {
+			// Execute as shell script using user's shell for better environment support
+			shell := os.Getenv("SHELL")
+			if shell == "" {
+				shell = "/bin/sh"
+			}
+			cmd = exec.CommandContext(ctx, shell, "-c", command)
+			logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 		}
-		cmd = exec.CommandContext(ctx, shell, "-c", command)
-		logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 	} else {
 		// Parse and execute as simple command
 		cmd = createSimpleCommand(ctx, command)
@@ -191,6 +220,11 @@ func isMultilineCommand(command string) bool {
 	return strings.Contains(command, "\n")
 }
 
+// hasShebang checks if the command starts with a shebang (#!)
+func hasShebang(command string) bool {
+	return strings.HasPrefix(strings.TrimSpace(command), "#!")
+}
+
 // createSimpleCommand parses a simple command into exec.Command
 func createSimpleCommand(ctx context.Context, command string) *exec.Cmd {
 	// Simple parsing: split by spaces, but this is basic
@@ -261,7 +295,7 @@ func sendActionNotification(title string, notifyAction *config.NotifyAction, ctx
 // Lines starting with # are ignored as comments
 // Empty lines are ignored
 func readEnvFile(path string) (map[string]string, error) {
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
