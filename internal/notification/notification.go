@@ -160,14 +160,17 @@ func openFile(path string) error {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 
-	// Don't wait for the command to finish
-	// The file will be opened in the default application
-	go cmd.Wait()
+	// Wait for the opener command to complete
+	// This ensures the file opener (xdg-open, open, start) has launched the application
+	// before the main process exits
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to wait for file opener: %w", err)
+	}
 
 	return nil
 }
 
-// executeCommand executes a command in the background
+// executeCommand executes a command and waits for it to complete
 func executeCommand(command string) error {
 	var cmd *exec.Cmd
 
@@ -184,9 +187,11 @@ func executeCommand(command string) error {
 		return fmt.Errorf("failed to execute command: %w", err)
 	}
 
-	// Don't wait for the command to finish
-	// The command will run in the background
-	go cmd.Wait()
+	// Wait for the command to complete
+	// This ensures the action completes before the main process exits
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("command execution failed: %w", err)
+	}
 
 	return nil
 }
