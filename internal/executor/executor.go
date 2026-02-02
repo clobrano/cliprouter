@@ -23,6 +23,9 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	// Use the command as-is; clipboard content will be passed via CLIP env var
 	command := script.Command
 
+	// Record script execution in history
+	history.RecordScriptTriggered(script.Name, command)
+
 	// Create a temporary file for dynamic environment variables
 	envFile, err := os.CreateTemp("", "cliprouter-env-*.txt")
 	if err != nil {

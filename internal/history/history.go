@@ -19,14 +19,15 @@ const HistoryFileName = "cliprouter/history.log"
 type ActivityType string
 
 const (
-	ActivityNotifyBefore  ActivityType = "NOTIFY_BEFORE"
-	ActivityNotifyAfter   ActivityType = "NOTIFY_AFTER"
-	ActivityNotifyOnError ActivityType = "NOTIFY_ERROR"
-	ActivityActionPrompt  ActivityType = "ACTION_PROMPT"
-	ActivityActionConfirm ActivityType = "ACTION_CONFIRMED"
-	ActivityActionDecline ActivityType = "ACTION_DECLINED"
-	ActivityActionExecute ActivityType = "ACTION_EXECUTE"
-	ActivityActionOpenFile ActivityType = "ACTION_OPEN_FILE"
+	ActivityScriptTriggered ActivityType = "SCRIPT_TRIGGERED"
+	ActivityNotifyBefore    ActivityType = "NOTIFY_BEFORE"
+	ActivityNotifyAfter     ActivityType = "NOTIFY_AFTER"
+	ActivityNotifyOnError   ActivityType = "NOTIFY_ERROR"
+	ActivityActionPrompt    ActivityType = "ACTION_PROMPT"
+	ActivityActionConfirm   ActivityType = "ACTION_CONFIRMED"
+	ActivityActionDecline   ActivityType = "ACTION_DECLINED"
+	ActivityActionExecute   ActivityType = "ACTION_EXECUTE"
+	ActivityActionOpenFile  ActivityType = "ACTION_OPEN_FILE"
 )
 
 // InitHistory initializes the history logging system
@@ -72,6 +73,11 @@ func Record(activityType ActivityType, scriptName, message string) {
 	entry := fmt.Sprintf("[%s] [%s] script=%q %s\n", timestamp, activityType, scriptName, message)
 
 	historyFile.WriteString(entry)
+}
+
+// RecordScriptTriggered records when a script is triggered by the user
+func RecordScriptTriggered(scriptName, command string) {
+	Record(ActivityScriptTriggered, scriptName, fmt.Sprintf("command=%q", command))
 }
 
 // RecordNotification records a notification activity
