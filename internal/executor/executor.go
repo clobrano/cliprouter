@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/clobrano/cliprouter/internal/config"
+	"github.com/clobrano/cliprouter/internal/history"
 	"github.com/clobrano/cliprouter/internal/logger"
 	"github.com/clobrano/cliprouter/internal/notification"
 )
@@ -36,7 +37,7 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 
 	// Send pre-execution notification if configured
 	if script.NotifyBefore != "" {
-		sendNotification(script.Name, script.NotifyBefore, notification.NotificationContext{
+		sendNotification(script.Name, script.NotifyBefore, history.ActivityNotifyBefore, notification.NotificationContext{
 			ScriptName: script.Name,
 			Command:    command,
 			ExitCode:   0,
@@ -191,10 +192,10 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 
 	if hasError && script.NotifyOnError != "" {
 		// Send error notification if command failed
-		sendNotification(script.Name, script.NotifyOnError, notifCtx)
+		sendNotification(script.Name, script.NotifyOnError, history.ActivityNotifyOnError, notifCtx)
 	} else if !hasError && script.NotifyAfter != "" {
 		// Send success notification if command succeeded
-		sendNotification(script.Name, script.NotifyAfter, notifCtx)
+		sendNotification(script.Name, script.NotifyAfter, history.ActivityNotifyAfter, notifCtx)
 	}
 
 	// Send interactive action notification if configured (only on success)
@@ -248,13 +249,16 @@ func SubstituteClipboard(command, clipboardContent string) string {
 
 // sendNotification sends a notification with variable substitution
 // The title is always the script name, only the message supports variable substitution
-func sendNotification(title, message string, ctx notification.NotificationContext) {
+func sendNotification(title, message string, activityType history.ActivityType, ctx notification.NotificationContext) {
 	if message == "" {
 		return
 	}
 
 	// Substitute variables in message
 	message = notification.SubstituteVariables(message, ctx)
+
+	// Record the notification in history
+	history.RecordNotification(activityType, ctx.ScriptName, message)
 
 	// Send the notification
 	if err := notification.Send(title, message); err != nil {

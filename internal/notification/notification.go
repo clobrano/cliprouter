@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/clobrano/cliprouter/internal/history"
 	"github.com/clobrano/cliprouter/internal/logger"
 )
 
@@ -113,12 +114,18 @@ func SendAction(title, prompt string, action *ActionConfig, ctx NotificationCont
 
 	logger.LogDebug("Sending action notification: title='%s', prompt='%s'", title, prompt)
 
+	// Record the action prompt in history
+	history.RecordActionPrompt(ctx.ScriptName, prompt)
+
 	// Show platform-specific dialog
 	confirmed, err := sendPlatformActionNotification(title, prompt)
 	if err != nil {
 		logger.LogDebug("Action notification failed: %v", err)
 		return false, err
 	}
+
+	// Record user decision in history
+	history.RecordActionDecision(ctx.ScriptName, confirmed)
 
 	if !confirmed {
 		logger.LogDebug("User canceled action notification")
@@ -129,12 +136,14 @@ func SendAction(title, prompt string, action *ActionConfig, ctx NotificationCont
 	if action.OpenFile != "" {
 		filePath := SubstituteVariables(action.OpenFile, ctx)
 		logger.LogDebug("Opening file: %s", filePath)
+		history.RecordActionExecution(ctx.ScriptName, "open_file", filePath)
 		return true, openFile(filePath)
 	}
 
 	if action.Execute != "" {
 		command := SubstituteVariables(action.Execute, ctx)
 		logger.LogDebug("Executing command: %s", command)
+		history.RecordActionExecution(ctx.ScriptName, "execute", command)
 		return true, executeCommand(command)
 	}
 

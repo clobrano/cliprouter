@@ -11,6 +11,7 @@ import (
 	"github.com/clobrano/cliprouter/internal/clipboard"
 	"github.com/clobrano/cliprouter/internal/config"
 	"github.com/clobrano/cliprouter/internal/executor"
+	"github.com/clobrano/cliprouter/internal/history"
 	"github.com/clobrano/cliprouter/internal/logger"
 	"github.com/clobrano/cliprouter/internal/ui"
 )
@@ -31,6 +32,13 @@ func main() {
 		os.Exit(2)
 	}
 	defer logger.Close()
+
+	// Initialize history
+	if err := history.InitHistory(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to initialize history: %v\n", err)
+		os.Exit(2)
+	}
+	defer history.Close()
 
 	logger.LogInfo("Clipboard Router starting")
 
