@@ -133,6 +133,27 @@ scripts:
   #     echo "PROJECT_DIR=$PROJECT_DIR" >> "$CLIPROUTER_ENV_FILE"
   #     cd "$PROJECT_DIR" && npm run build
 
+  # Example 19: Interactive shell session (uses tmux if available)
+  # When interactive is true, the command runs in a tmux window (if inside tmux)
+  # or a new tmux session (if not). Falls back to the current terminal if tmux
+  # is not installed. Useful for launching REPLs, AI assistants, or any process
+  # that requires ongoing user input.
+  # - name: Claude Session
+  #   interactive: true
+  #   command: claude
+
+  # Example 20: Interactive with clipboard context
+  # - name: Claude with Context
+  #   interactive: true
+  #   command: |
+  #     echo "Context from clipboard: ${CLIP}"
+  #     claude
+
+  # Example 21: Interactive Python REPL
+  # - name: Python REPL
+  #   interactive: true
+  #   command: python3
+
   # Example 17: Interactive notification - Using CLIPROUTER_ENV_FILE in both prompt and action
   # - name: Generate Report
   #   notify_after: "Report generation completed"
@@ -178,6 +199,13 @@ scripts:
 # - Both 'name' and 'command' fields are required
 # - 'timeout' is optional (in seconds). If not specified, uses the global
 #   --timeout flag (default: 3 seconds)
+#
+# Interactive mode:
+# - 'interactive: true' runs the command in a shell you can interact with
+# - If tmux is available: opens a new tmux window (inside tmux) or session (outside tmux)
+# - If tmux is not available: runs directly in the current terminal with stdio connected
+# - Timeout is ignored for interactive scripts
+# - Useful for REPLs, AI assistants (claude), or any long-running interactive process
 #
 # Notifications:
 # - Notification title is always the script name
