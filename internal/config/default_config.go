@@ -65,5 +65,16 @@ scripts:
 #   - Dynamic vars: Write to $CLIPROUTER_ENV_FILE in your command:
 #     echo "VAR_NAME=value" >> "$CLIPROUTER_ENV_FILE"
 #   - NOTE: Env vars exported INSIDE commands are not accessible (use CLIPROUTER_ENV_FILE)
+#
+# Interactive mode:
+#   - interactive: true  # Runs command in an interactive shell
+#   - Uses tmux if available (new window inside tmux, new session otherwise)
+#   - Falls back to running directly in the current terminal
+#   - Timeout is ignored for interactive scripts
+#   - Useful for REPLs, AI assistants, or long-running interactive processes
+#   Example:
+#   - name: Claude Session
+#     interactive: true
+#     command: claude
 `
 }

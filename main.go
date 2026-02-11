@@ -119,6 +119,21 @@ func main() {
 		command := executor.SubstituteClipboard(selectedScript.Command, singleLineContent)
 		fmt.Printf("Would execute script: %s\n", selectedScript.Name)
 		fmt.Printf("Command: %s\n", command)
+		if selectedScript.Interactive {
+			fmt.Printf("Mode: interactive (tmux if available)\n")
+		}
+		os.Exit(0)
+	}
+
+	// Handle interactive scripts separately
+	if selectedScript.Interactive {
+		logger.LogInfo("Running in interactive mode")
+		if err := executor.ExecuteInteractive(*selectedScript, singleLineContent); err != nil {
+			logger.LogError("Interactive script execution failed: %v", err)
+			fmt.Fprintf(os.Stderr, "Error: Interactive script execution failed: %v\n", err)
+			os.Exit(1)
+		}
+		logger.LogInfo("Interactive script completed")
 		os.Exit(0)
 	}
 

@@ -31,6 +31,7 @@ type Script struct {
 	Name          string        `yaml:"name"`
 	Command       string        `yaml:"command"`
 	Timeout       int           `yaml:"timeout,omitempty"`          // Timeout in seconds (optional, 0 means use default)
+	Interactive   bool          `yaml:"interactive,omitempty"`      // Run in interactive shell (tmux if available, direct otherwise)
 	NotifyBefore  string        `yaml:"notify_before,omitempty"`    // Notification message before command starts
 	NotifyAfter   string        `yaml:"notify_after,omitempty"`     // Notification message after command completes successfully
 	NotifyOnError string        `yaml:"notify_on_error,omitempty"`  // Notification message when command fails
