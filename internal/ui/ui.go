@@ -18,6 +18,10 @@ var (
 )
 
 var (
+	catppuccinYellow = lipgloss.Color("#f9e2af") // Yellow - for warnings
+)
+
+var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(catppuccinMauve).
@@ -25,6 +29,11 @@ var (
 
 	clipboardStyle = lipgloss.NewStyle().
 			Foreground(catppuccinText).
+			MarginBottom(1)
+
+	warningStyle = lipgloss.NewStyle().
+			Foreground(catppuccinYellow).
+			Bold(true).
 			MarginBottom(1)
 
 	instructionsStyle = lipgloss.NewStyle().
@@ -60,10 +69,15 @@ func (m Model) View() string {
 	b.WriteString(titleStyle.Render("Clipboard Router"))
 	b.WriteString("\n")
 
-	// Clipboard excerpt
-	clipText := fmt.Sprintf("Clipboard: \"%s\"", m.clipboardExcerpt)
-	b.WriteString(clipboardStyle.Render(clipText))
-	b.WriteString("\n")
+	// Clipboard excerpt or empty warning
+	if m.clipboardEmpty {
+		b.WriteString(warningStyle.Render("Warning: Clipboard is empty"))
+		b.WriteString("\n")
+	} else {
+		clipText := fmt.Sprintf("Clipboard: \"%s\"", m.clipboardExcerpt)
+		b.WriteString(clipboardStyle.Render(clipText))
+		b.WriteString("\n")
+	}
 
 	// Instructions
 	instructions := "Select a script (↑↓ to navigate, type to search):"

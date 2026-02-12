@@ -72,10 +72,9 @@ func main() {
 	}
 
 	// Check if clipboard is empty
-	if clipboard.IsEmpty(clipContent) {
-		logger.LogError("Clipboard is empty")
-		fmt.Fprintf(os.Stderr, "Error: Clipboard is empty. Copy some text and try again.\n")
-		os.Exit(1)
+	clipboardEmpty := clipboard.IsEmpty(clipContent)
+	if clipboardEmpty {
+		logger.LogInfo("Clipboard is empty, continuing with warning")
 	}
 
 	// Convert to single line for processing
@@ -86,7 +85,7 @@ func main() {
 	excerpt := clipboard.CreateExcerpt(clipContent)
 
 	// Create and run TUI
-	model := ui.NewModel(cfg.Scripts, excerpt)
+	model := ui.NewModel(cfg.Scripts, excerpt, clipboardEmpty)
 	p := tea.NewProgram(model)
 	finalModel, err := p.Run()
 	if err != nil {

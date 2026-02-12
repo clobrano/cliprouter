@@ -13,6 +13,7 @@ type Model struct {
 	selectedIndex    int             // Currently selected script index
 	searchQuery      string          // Current search query
 	clipboardExcerpt string          // Clipboard content excerpt
+	clipboardEmpty   bool            // Whether the clipboard is empty
 	selectedScript   *config.Script  // Script chosen by user (when Enter pressed)
 	quitting         bool            // Whether user is quitting
 	width            int             // Terminal width
@@ -20,13 +21,14 @@ type Model struct {
 }
 
 // NewModel creates a new TUI model
-func NewModel(scripts []config.Script, clipboardExcerpt string) Model {
+func NewModel(scripts []config.Script, clipboardExcerpt string, clipboardEmpty bool) Model {
 	return Model{
 		scripts:          scripts,
 		filteredScripts:  scripts,
 		selectedIndex:    0,
 		searchQuery:      "",
 		clipboardExcerpt: clipboardExcerpt,
+		clipboardEmpty:   clipboardEmpty,
 		selectedScript:   nil,
 		quitting:         false,
 	}
