@@ -36,16 +36,16 @@ func ConvertToSingleLine(content string) string {
 	return strings.TrimSpace(content)
 }
 
-// CreateExcerpt generates a display excerpt (first 15 + "..." + last 15 chars)
+// CreateExcerpt generates a display excerpt (first 40 + "..." + last 15 chars)
 func CreateExcerpt(content string) string {
 	// Convert to single line first for display
 	singleLine := ConvertToSingleLine(content)
 
-	if len(singleLine) <= 33 { // 15 + 3 ("...") + 15
+	if len(singleLine) <= 58 { // 40 + 3 ("...") + 15
 		return singleLine
 	}
 
-	first := singleLine[:15]
+	first := singleLine[:40]
 	last := singleLine[len(singleLine)-15:]
 	return first + "..." + last
 }
