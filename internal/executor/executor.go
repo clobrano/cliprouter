@@ -1,12 +1,12 @@
 package executor
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/clobrano/cliprouter/internal/config"
@@ -47,27 +47,12 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 		})
 	}
 
-	// Create context with or without timeout
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	if timeout > 0 {
-		logger.LogDebug("Using timeout: %v", timeout)
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	} else {
-		logger.LogDebug("Running without timeout - will wait indefinitely")
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-	defer cancel()
-
 	// Detect if multiline (shell script) or simple command
 	// Force shell execution if the command contains ${CLIP} to allow shell variable expansion
 	var cmd *exec.Cmd
 	if isMultilineCommand(script.Command) || strings.Contains(script.Command, "${CLIP}") {
 		// Check if script has a shebang - if so, write to temp file to respect it
 		if hasShebang(script.Command) {
-			// Write script to temp file and execute it to respect shebang
-			// No extension needed - the shebang specifies the interpreter
 			scriptFile, err := os.CreateTemp("", "cliprouter-script-*")
 			if err != nil {
 				logger.LogError("Failed to create script file: %v", err)
@@ -76,7 +61,6 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 			scriptPath := scriptFile.Name()
 			defer os.Remove(scriptPath)
 
-			// Write the script content
 			if _, err := scriptFile.WriteString(command); err != nil {
 				scriptFile.Close()
 				logger.LogError("Failed to write script file: %v", err)
@@ -84,26 +68,23 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 			}
 			scriptFile.Close()
 
-			// Make it executable
 			if err := os.Chmod(scriptPath, 0700); err != nil {
 				logger.LogError("Failed to make script executable: %v", err)
 				return "", "", fmt.Errorf("failed to make script executable: %w", err)
 			}
 
-			cmd = exec.CommandContext(ctx, scriptPath)
+			cmd = exec.Command(scriptPath)
 			logger.LogDebug("Executing script file with shebang: %s", scriptPath)
 		} else {
-			// Execute as shell script using user's shell for better environment support
 			shell := os.Getenv("SHELL")
 			if shell == "" {
 				shell = "/bin/sh"
 			}
-			cmd = exec.CommandContext(ctx, shell, "-c", command)
+			cmd = exec.Command(shell, "-c", command)
 			logger.LogDebug("Executing as shell script: %s -c %s", shell, command)
 		}
 	} else {
-		// Parse and execute as simple command
-		cmd = createSimpleCommand(ctx, command)
+		cmd = createSimpleCommand(context.Background(), command)
 		logger.LogDebug("Executing as simple command: %v", cmd.Args)
 	}
 
@@ -119,94 +100,18 @@ func Execute(script config.Script, clipboardContent string, timeout time.Duratio
 	cmd.Env = append(cmd.Env, fmt.Sprintf("CLIPROUTER_ENV_FILE=%s", envFilePath))
 	logger.LogDebug("Setting env var: CLIPROUTER_ENV_FILE=%s", envFilePath)
 
-	// Capture stdout and stderr
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// Detach from the parent process group so the command survives cliprouter exiting
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
-	// Start the command
-	logger.LogDebug("Starting process for script: %s", script.Name)
-	err = cmd.Start()
-	if err != nil {
+	// Start the command and return immediately (background execution)
+	logger.LogDebug("Starting background process for script: %s", script.Name)
+	if err = cmd.Start(); err != nil {
 		logger.LogError("Failed to start script '%s': %v", script.Name, err)
 		return "", "", fmt.Errorf("failed to start script: %w", err)
 	}
 
-	// Wait for the process to complete
-	logger.LogDebug("Waiting for process to complete: %s", script.Name)
-	err = cmd.Wait()
-
-	stdoutStr := stdout.String()
-	stderrStr := stderr.String()
-
-	// Log output
-	if stdoutStr != "" {
-		logger.LogDebug("stdout: %s", stdoutStr)
-	}
-	if stderrStr != "" {
-		logger.LogDebug("stderr: %s", stderrStr)
-	}
-
-	// Check for timeout (only relevant if timeout was set)
-	if timeout > 0 && ctx.Err() == context.DeadlineExceeded {
-		logger.LogError("Script '%s' timed out after %v", script.Name, timeout)
-		return stdoutStr, stderrStr, fmt.Errorf("script execution timed out after %v", timeout)
-	}
-
-	// Determine exit code and error message
-	exitCode := 0
-	errorMsg := ""
-	hasError := false
-	if err != nil {
-		exitCode = 1
-		errorMsg = err.Error()
-		hasError = true
-		logger.LogError("Script '%s' failed: %v", script.Name, err)
-	} else {
-		logger.LogInfo("Script '%s' completed successfully - process has exited", script.Name)
-	}
-
-	// Read dynamic environment variables from the env file
-	var finalEnv map[string]string
-	if envVars, err := readEnvFile(envFilePath); err == nil {
-		finalEnv = envVars
-		for k, v := range envVars {
-			logger.LogDebug("Dynamic env var from script: %s=%s", k, v)
-		}
-	} else {
-		logger.LogDebug("No dynamic env vars or error reading env file: %v", err)
-		finalEnv = make(map[string]string)
-	}
-
-	// Send post-execution notification based on success or failure
-	notifCtx := notification.NotificationContext{
-		ScriptName: script.Name,
-		Command:    command,
-		ExitCode:   exitCode,
-		Stdout:     stdoutStr,
-		Stderr:     stderrStr,
-		Error:      errorMsg,
-		ScriptEnv:  finalEnv,
-	}
-
-	if hasError && script.NotifyOnError != "" {
-		// Send error notification if command failed
-		sendNotification(script.Name, script.NotifyOnError, notifCtx)
-	} else if !hasError && script.NotifyAfter != "" {
-		// Send success notification if command succeeded
-		sendNotification(script.Name, script.NotifyAfter, notifCtx)
-	}
-
-	// Send interactive action notification if configured (only on success)
-	if !hasError && script.NotifyAction != nil {
-		sendActionNotification(script.Name, script.NotifyAction, notifCtx)
-	}
-
-	if err != nil {
-		return stdoutStr, stderrStr, fmt.Errorf("script execution failed: %w", err)
-	}
-
-	return stdoutStr, stderrStr, nil
+	logger.LogInfo("Script '%s' started in background (pid %d)", script.Name, cmd.Process.Pid)
+	return "", "", nil
 }
 
 // substituteClipboard replaces ${CLIP} with the clipboard content for display purposes

@@ -119,7 +119,7 @@ func main() {
 		fmt.Printf("Would execute script: %s\n", selectedScript.Name)
 		fmt.Printf("Command: %s\n", command)
 		if selectedScript.Interactive {
-			fmt.Printf("Mode: interactive (tmux if available)\n")
+			fmt.Printf("Mode: interactive (current shell)\n")
 		}
 		os.Exit(0)
 	}
